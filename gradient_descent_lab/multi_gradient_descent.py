@@ -1,10 +1,7 @@
 import copy, math
 
-import e
 import numpy as np
 import matplotlib.pyplot as plt
-
-from gradient_descent_lab.gradient_descent_soln import J_hist
 
 plt.style.use('./deeplearning.mplstyle')
 np.set_printoptions(precision=2)  # reduce display precision on numpy array
