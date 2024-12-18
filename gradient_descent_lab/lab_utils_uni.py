@@ -47,7 +47,7 @@ def mk_cost_lines(x,y,w,b, ax):
         ax.vlines(p[0], p[1],f_wb_p, lw=3, color=dlpurple, ls='dotted', label=label)
         label='' #just one
         cxy = [p[0], p[1] + (f_wb_p-p[1])/2]
-        ax.annotate(f'{c_p_txt:0.0f}', xy=cxy, xycoords='data',color=dlpurple,
+        ax.annotate(f'{c_p_txt:0.0f}', xy=cxy, xycoords='sources',color=dlpurple,
             xytext=(5, 0), textcoords='offset points')
         cstr += f"{c_p_txt:0.0f} +"
         if len(cstr) > 38 and addedbreak is False:
@@ -269,7 +269,7 @@ def plt_contour_wgrad(x, y, hist, ax, w_range=[-100, 500, 5], b_range=[-500, 500
         edist = np.sqrt((base[0] - point[0])**2 + (base[1] - point[1])**2)
         if(edist > resolution or point==hist[-1]):
             if inbounds(point,base, ax.get_xlim(),ax.get_ylim()):
-                plt.annotate('', xy=point, xytext=base,xycoords='data',
+                plt.annotate('', xy=point, xytext=base,xycoords='sources',
                          arrowprops={'arrowstyle': '->', 'color': 'r', 'lw': 3},
                          va='center', ha='center')
             base=point
@@ -345,7 +345,7 @@ def add_line(dj_dx, x1, y1, d, ax):
     ax.plot(x, y, '--', c=dldarkred,zorder=10, linewidth = 1)
     xoff = 30 if x1 == 200 else 10
     ax.annotate(r"$\frac{\partial J}{\partial w}$ =%d" % dj_dx, fontsize=14,
-                xy=(x1, y1), xycoords='data',
+                xy=(x1, y1), xycoords='sources',
             xytext=(xoff, 10), textcoords='offset points',
             arrowprops=dict(arrowstyle="->"),
             horizontalalignment='left', verticalalignment='top')

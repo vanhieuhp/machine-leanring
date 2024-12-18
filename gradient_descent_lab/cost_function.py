@@ -20,7 +20,7 @@ def compute_cost(x, y, w, b):
 
         Returns
             total_cost (float): The cost of using w,b as the parameters for linear regression
-                   to fit the data points in x and y
+                   to fit the sources points in x and y
     """
 
     # Number of training examples

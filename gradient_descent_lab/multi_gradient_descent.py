@@ -9,7 +9,7 @@ np.set_printoptions(precision=2)  # reduce display precision on numpy array
 X_train = np.array([[2104, 5, 1, 45], [1416, 3, 2, 40], [852, 2, 1, 35]])
 y_train = np.array([460, 232, 178])
 
-# data is stored in numpy array/matrix
+# sources is stored in numpy array/matrix
 print(f"X Shape: {X_train.shape}, X Type:{type(X_train)})")
 print(X_train)
 print(f"y Shape: {y_train.shape}, y Type:{type(y_train)})")
@@ -42,7 +42,7 @@ def predict_single_loop(x, w, b):
     return p
 
 
-# get a row from our training data
+# get a row from our training sources
 # x_vec = X_train[1, :]
 # print(x_vec)
 #
@@ -65,7 +65,7 @@ def predict(x, w, b):
     return p
 
 
-# get a row from our training data
+# get a row from our training sources
 x_vec = X_train[0, :]
 print(f"x_vec shape {x_vec.shape}, x_vec value: {x_vec}")
 

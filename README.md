@@ -1,6 +1,7 @@
 # Bitwarden key code: MUDC 3V8F B50I WDYN 4MK1 B08Q C4FA YI2U
 
 # machine-leanring
+pip freeze > requirements.txt
 
 # Machine Learning Project
 
