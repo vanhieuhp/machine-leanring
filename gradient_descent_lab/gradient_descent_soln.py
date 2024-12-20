@@ -1,9 +1,9 @@
-import math, copy
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 
 plt.style.use('./deeplearning.mplstyle')
-from lab_utils_uni import plt_house_x, plt_contour_wgrad, plt_divergence, plt_gradients
+from gradient_descent_lab.additional_utils.lab_utils_uni import plt_contour_wgrad, plt_gradients
 
 # Load our sources set
 x_train = np.array([1.0, 2.0])
