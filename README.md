@@ -31,3 +31,32 @@ python ./gpu_checking.py
 2. VietAI
 3. Youtobe MIT
 
+
+## 2. Jupyter Notebook Server Setup
+#### Step 1: Set a Password for Jupyter Notebook
+```
+jupyter notebook password
+```
+
+#### Step 2: Generate the Configuration File
+```
+jupyter notebook --generate-config
+```
+
+#### Step 3: Edit the Configuration File
+```
+c.NotebookApp.ip = '192.111.33.101'
+c.NotebookApp.port = 8888  # You can change this port if needed
+c.NotebookApp.open_browser = False
+c.NotebookApp.allow_remote_access = True
+```
+
+#### Step 4: Start the Jupyter Notebook Server
+```
+jupyter notebook --config=C:\Users\Admin\.jupyter\jupyter_notebook_config.py
+```
+
+#### Accessing the Notebook
+- Open your browser and navigate to `http://192.111.33.101:8888`.
+- Use the password you set earlier to log in.
+```
