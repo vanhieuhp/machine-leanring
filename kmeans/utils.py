@@ -15,7 +15,7 @@ def plot_data_points(X, idx):
     cmap = ListedColormap(["red", "green", "blue"])
     c = cmap(idx)
     
-    # plots data points in X, coloring them so that those with the same
+    # plots simple points in X, coloring them so that those with the same
     # index assignments in idx have the same color
     plt.scatter(X[:, 0], X[:, 1], facecolors='none', edgecolors=c, linewidth=0.1, alpha=0.7)
 
