@@ -1,320 +1,461 @@
 """
-=================================================================
-02 - GRADIENT BOOSTING: AdaBoost & Gradient Boosting Deep Dive
-=================================================================
-Topics covered:
-  1. AdaBoost — algorithm and implementation
-  2. Gradient Boosting — step by step
-  3. Gradient Boosting Classifier & Regressor
-  4. Learning rate and n_estimators trade-off
-  5. Comparison: Bagging vs Boosting
-  6. Practical tips for Gradient Boosting
-=================================================================
+Gradient Boosting - Deep Dive
+==============================
+
+This module covers:
+- Understanding Gradient Boosting algorithm
+- Gradient Boosting from sklearn
+- Key hyperparameters
+- Comparison with Random Forest
+- Preventing overfitting
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.datasets import make_classification, make_regression, load_wine
-from sklearn.ensemble import (
-    AdaBoostClassifier,
-    GradientBoostingClassifier,
-    GradientBoostingRegressor,
-    RandomForestClassifier,
-)
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    mean_squared_error,
-    r2_score,
-)
-import warnings
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, mean_squared_error, r2_score, classification_report
+from sklearn.datasets import make_classification, make_regression
 
-warnings.filterwarnings("ignore")
+# ============================================================================
+# 1. UNDERSTANDING GRADIENT BOOSTING
+# ============================================================================
 
-# ── Section 1: AdaBoost ──────────────────────────────────────────
-print("=" * 65)
-print("SECTION 1: AdaBoost (Adaptive Boosting)")
-print("=" * 65)
+print("=" * 70)
+print("1. GRADIENT BOOSTING CONCEPT")
+print("=" * 70)
 
-# Create dataset
-X, y = make_classification(
-    n_samples=1000,
-    n_features=20,
-    n_informative=10,
-    n_redundant=5,
-    n_classes=2,
-    random_state=42,
-)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+print("""
+Gradient Boosting: Sequential ensemble that learns from mistakes
 
-# --- 1.1 AdaBoost with stumps (default) ---
-print("\n📌 1.1 AdaBoost with Decision Stumps (depth=1):")
-ada_stump = AdaBoostClassifier(
-    estimator=DecisionTreeClassifier(max_depth=1),
-    n_estimators=100,
-    learning_rate=1.0,
-    random_state=42,
-)
-ada_stump.fit(X_train, y_train)
-print(f"  Train Accuracy: {accuracy_score(y_train, ada_stump.predict(X_train)):.4f}")
-print(f"  Test Accuracy:  {accuracy_score(y_test, ada_stump.predict(X_test)):.4f}")
+Key Ideas:
+1. Start with simple model (usually predicting mean)
+2. Calculate residuals (errors) from current predictions
+3. Fit new model to predict these residuals
+4. Add new model to ensemble (with learning rate)
+5. Repeat for n_estimators
 
-# --- 1.2 AdaBoost with deeper trees ---
-print("\n📌 1.2 AdaBoost with deeper trees (depth=3):")
-ada_deep = AdaBoostClassifier(
-    estimator=DecisionTreeClassifier(max_depth=3),
-    n_estimators=100,
-    learning_rate=0.5,
-    random_state=42,
-)
-ada_deep.fit(X_train, y_train)
-print(f"  Train Accuracy: {accuracy_score(y_train, ada_deep.predict(X_train)):.4f}")
-print(f"  Test Accuracy:  {accuracy_score(y_test, ada_deep.predict(X_test)):.4f}")
+Analogy:
+- First model: "Predict house price = $200k" (very rough)
+- Second model learns: "The house has 3 bedrooms, add $50k"
+- Third model learns: "House is near school, add $20k"
+- Final: Sum of all corrections
+""")
 
-# --- 1.3 Effect of n_estimators on AdaBoost ---
-print("\n📌 1.3 AdaBoost: Effect of n_estimators:")
-for n_est in [10, 50, 100, 200, 500]:
-    ada = AdaBoostClassifier(
-        n_estimators=n_est, learning_rate=0.5, random_state=42
-    )
-    ada.fit(X_train, y_train)
-    train_acc = accuracy_score(y_train, ada.predict(X_train))
-    test_acc = accuracy_score(y_test, ada.predict(X_test))
-    print(f"  n_estimators={n_est:>3d}: train={train_acc:.4f}, test={test_acc:.4f}")
+# ============================================================================
+# 2. GRADIENT BOOSTING REGRESSION FROM SCRATCH
+# ============================================================================
 
-# --- 1.4 Staged predictions (see how accuracy builds up) ---
-print("\n📌 1.4 AdaBoost Staged Performance (accuracy after each round):")
-ada_staged = AdaBoostClassifier(n_estimators=100, random_state=42)
-ada_staged.fit(X_train, y_train)
+print("\n" + "=" * 70)
+print("2. GRADIENT BOOSTING FROM SCRATCH")
+print("=" * 70)
 
-staged_scores = []
-for i, y_pred in enumerate(ada_staged.staged_predict(X_test)):
-    staged_scores.append(accuracy_score(y_test, y_pred))
+class SimpleGradientBoosting:
+    """Simplified Gradient Boosting for demonstration"""
+    def __init__(self, n_estimators=5, learning_rate=0.1, max_depth=3):
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.max_depth = max_depth
+        self.models = []
+        self.initial_prediction = None
 
-checkpoints = [0, 9, 24, 49, 74, 99]
-for idx in checkpoints:
-    if idx < len(staged_scores):
-        print(f"  After {idx + 1:>3d} rounds: {staged_scores[idx]:.4f}")
+    def fit(self, X, y):
+        # Initial prediction (mean for regression)
+        self.initial_prediction = np.mean(y)
+        current_prediction = np.full(len(y), self.initial_prediction)
 
-# ── Section 2: Gradient Boosting ──────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 2: Gradient Boosting (Step-by-Step)")
-print("=" * 65)
+        for i in range(self.n_estimators):
+            # Calculate residuals (negative gradient)
+            residuals = y - current_prediction
 
-# --- 2.1 Manual demonstration of gradient boosting ---
-print("\n📌 2.1 Manual Gradient Boosting (Regression Example):")
-print("  Shows how residuals shrink at each step\n")
+            # Fit a decision tree to residuals
+            tree = SimpleDecisionTreeRegressor(max_depth=self.max_depth)
+            tree.fit(X, residuals)
 
-np.random.seed(42)
-X_demo = np.random.rand(6, 1) * 10
-y_demo = np.array([10.0, 15.0, 20.0, 25.0, 30.0, 35.0])
+            # Make predictions
+            tree_predictions = tree.predict(X)
 
-# Step 0: initial prediction = mean
-pred = np.full_like(y_demo, y_demo.mean())
-print(f"  y_true:    {y_demo}")
-print(f"  Step 0 (mean): {pred}")
-print(f"  Residuals: {y_demo - pred}")
-print(f"  MSE:       {np.mean((y_demo - pred) ** 2):.2f}")
+            # Update current prediction
+            current_prediction += self.learning_rate * tree_predictions
 
-learning_rate = 0.3
-for step in range(1, 4):
-    residuals = y_demo - pred
-    # Simplified: pretend our "tree" learns the residuals perfectly
-    tree_pred = residuals * 0.9  # a little imperfect
-    pred = pred + learning_rate * tree_pred
-    mse = np.mean((y_demo - pred) ** 2)
-    print(f"\n  Step {step}:")
-    print(f"    Predictions: {np.round(pred, 2)}")
-    print(f"    Residuals:   {np.round(y_demo - pred, 2)}")
-    print(f"    MSE:         {mse:.2f}")
+            # Store the tree
+            self.models.append(tree)
 
-print("\n  ✦ Notice: residuals get smaller at each step! That's boosting.")
+        return self
 
-# ── Section 3: Gradient Boosting Classifier ───────────────────────
-print("\n" + "=" * 65)
-print("SECTION 3: GradientBoostingClassifier (scikit-learn)")
-print("=" * 65)
+    def predict(self, X):
+        # Start with initial prediction
+        predictions = np.full(len(X), self.initial_prediction)
 
-# --- 3.1 Basic usage ---
-print("\n📌 3.1 Basic Gradient Boosting Classifier:")
-gb_clf = GradientBoostingClassifier(
+        # Add contributions from each tree
+        for tree in self.models:
+            predictions += self.learning_rate * tree.predict(X)
+
+        return predictions
+
+
+class SimpleDecisionTreeRegressor:
+    """Simple decision tree for regression"""
+    def __init__(self, max_depth=3):
+        self.max_depth = max_depth
+
+    def fit(self, X, y):
+        self.tree = self._build_tree(X, y, depth=0)
+
+    def _build_tree(self, X, y, depth):
+        if depth >= self.max_depth or len(y) < 5:
+            return np.mean(y)
+
+        best_split = {}
+        best_gain = -np.inf
+
+        n_samples, n_features = X.shape
+
+        for feature in np.random.choice(n_features, max(1, n_features // 2), replace=False):
+            thresholds = np.unique(X[:, feature])
+            for threshold in thresholds:
+                left_mask = X[:, feature] <= threshold
+                right_mask = ~left_mask
+
+                if np.sum(left_mask) < 2 or np.sum(right_mask) < 2:
+                    continue
+
+                # MSE reduction
+                parent_mse = np.mean((y - np.mean(y)) ** 2)
+                left_mse = np.mean((y[left_mask] - np.mean(y[left_mask])) ** 2)
+                right_mse = np.mean((y[right_mask] - np.mean(y[right_mask])) ** 2)
+
+                gain = parent_mse - (np.sum(left_mask) * left_mse + np.sum(right_mask) * right_mse) / len(y)
+
+                if gain > best_gain:
+                    best_gain = gain
+                    best_split = {
+                        'feature': feature,
+                        'threshold': threshold,
+                        'left_mask': left_mask,
+                        'right_mask': right_mask
+                    }
+
+        if not best_split:
+            return np.mean(y)
+
+        left_tree = self._build_tree(X[best_split['left_mask']], y[best_split['left_mask']], depth + 1)
+        right_tree = self._build_tree(X[best_split['right_mask']], y[best_split['right_mask']], depth + 1)
+
+        return {
+            'feature': best_split['feature'],
+            'threshold': best_split['threshold'],
+            'left': left_tree,
+            'right': right_tree
+        }
+
+    def predict(self, X):
+        return np.array([self._predict_single(x, self.tree) for x in X])
+
+    def _predict_single(self, x, node):
+        if not isinstance(node, dict):
+            return node
+        if x[node['feature']] <= node['threshold']:
+            return self._predict_single(x, node['left'])
+        else:
+            return self._predict_single(x, node['right'])
+
+
+# Test custom implementation
+X, y = make_regression(n_samples=200, n_features=3, noise=15, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+gb_simple = SimpleGradientBoosting(n_estimators=10, learning_rate=0.1, max_depth=3)
+gb_simple.fit(X_train, y_train)
+y_pred_simple = gb_simple.predict(X_test)
+
+print(f"\nSimple GB R² Score: {r2_score(y_test, y_pred_simple):.4f}")
+
+# ============================================================================
+# 3. USING SCIKIT-LEARN GRADIENT BOOSTING
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("3. USING SCIKIT-LEARN")
+print("=" * 70)
+
+# Classification
+X, y = make_classification(n_samples=500, n_features=10, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+gb_classifier = GradientBoostingClassifier(
     n_estimators=100,
     learning_rate=0.1,
+    max_depth=5,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    subsample=0.8,
+    random_state=42
+)
+
+gb_classifier.fit(X_train, y_train)
+y_pred = gb_classifier.predict(X_test)
+
+print("\nGradient Boosting Classifier Results:")
+print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# ============================================================================
+# 4. KEY HYPERPARAMETERS
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("4. KEY HYPERPARAMETERS")
+print("=" * 70)
+
+print("""
+n_estimators: Number of boosting stages
+- More trees = more complex model
+- Use with learning_rate (shrinkage)
+- Typical: 100-500
+
+learning_rate (shrinkage): How much each tree contributes
+- Lower = slower learning but more trees = better generalization
+- Typical: 0.01 - 0.3
+- Common setting: 0.1
+
+max_depth: Maximum depth of each tree
+- Keep small (3-10) to prevent overfitting
+- Default: 3
+
+min_samples_split: Minimum samples to split
+- Prevents overfitting
+- Typical: 5-20
+
+min_samples_leaf: Minimum samples in leaf
+- Typical: 1-10
+
+subsample: Fraction of samples for each tree
+- < 1.0 = stochastic gradient boosting
+- Typical: 0.8
+- Helps reduce overfitting
+""")
+
+# ============================================================================
+# 5. LEARNING RATE VS N_ESTIMATORS
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("5. LEARNING RATE VS N_ESTIMATORS")
+print("=" * 70)
+
+plt.figure(figsize=(12, 6))
+
+train_sizes = [10, 25, 50, 75, 100, 150, 200]
+learning_rates = [0.01, 0.05, 0.1, 0.2]
+
+for lr in learning_rates:
+    train_scores = []
+    test_scores = []
+
+    for n_est in train_sizes:
+        gb = GradientBoostingClassifier(
+            n_estimators=n_est,
+            learning_rate=lr,
+            max_depth=3,
+            random_state=42
+        )
+        gb.fit(X_train, y_train)
+        train_scores.append(gb.score(X_train, y_train))
+        test_scores.append(gb.score(X_test, y_test))
+
+    plt.plot(train_sizes, test_scores, marker='o', label=f'lr={lr}')
+
+plt.xlabel('Number of Estimators')
+plt.ylabel('Test Accuracy')
+plt.title('Learning Rate vs Number of Estimators')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("""
+Key Insight:
+- Lower learning rate requires more estimators
+- Trade-off: more trees = slower training but better generalization
+- Use early_stopping to find optimal n_estimators
+""")
+
+# ============================================================================
+# 6. EARLY STOPPING
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("6. EARLY STOPPING")
+print("=" * 70)
+
+print("""
+Early Stopping:
+- Monitor validation score during training
+- Stop when no improvement for n rounds
+- Prevents overfitting
+- Finds optimal number of estimators
+""")
+
+gb_early = GradientBoostingClassifier(
+    n_estimators=200,
+    learning_rate=0.1,
     max_depth=3,
-    random_state=42,
-)
-gb_clf.fit(X_train, y_train)
-
-print(f"  Train Accuracy: {accuracy_score(y_train, gb_clf.predict(X_train)):.4f}")
-print(f"  Test Accuracy:  {accuracy_score(y_test, gb_clf.predict(X_test)):.4f}")
-print(
-    f"  CV Accuracy:    {cross_val_score(gb_clf, X_train, y_train, cv=5).mean():.4f}"
+    validation_fraction=0.1,
+    n_iter_no_change=10,  # Stop if no improvement for 10 rounds
+    random_state=42
 )
 
-# --- 3.2 Learning rate vs n_estimators trade-off ---
-print("\n📌 3.2 Learning Rate vs n_estimators Trade-off:")
-print("  (lower lr needs more estimators for same performance)\n")
+gb_early.fit(X_train, y_train)
 
-configs = [
-    (0.5, 50),
-    (0.1, 100),
-    (0.1, 200),
-    (0.05, 200),
-    (0.05, 500),
-    (0.01, 500),
-    (0.01, 1000),
-]
+print(f"Optimal n_estimators: {gb_early.n_estimators_}")
+print(f"Test Accuracy: {gb_early.score(X_test, y_test):.4f}")
 
-for lr, n_est in configs:
-    gb = GradientBoostingClassifier(
-        n_estimators=n_est, learning_rate=lr, max_depth=3, random_state=42
-    )
-    gb.fit(X_train, y_train)
-    test_acc = accuracy_score(y_test, gb.predict(X_test))
-    print(f"  lr={lr:.2f}, n_estimators={n_est:>4d}: test_acc={test_acc:.4f}")
+# ============================================================================
+# 7. STAGING PREDICTION (UNDERSTANDING BOOSTING)
+# ============================================================================
 
-# --- 3.3 Effect of max_depth ---
-print("\n📌 3.3 Effect of max_depth:")
-for depth in [1, 2, 3, 5, 7, 10]:
-    gb = GradientBoostingClassifier(
-        n_estimators=100, learning_rate=0.1, max_depth=depth, random_state=42
-    )
-    gb.fit(X_train, y_train)
-    train_acc = accuracy_score(y_train, gb.predict(X_train))
-    test_acc = accuracy_score(y_test, gb.predict(X_test))
-    gap = train_acc - test_acc
-    print(
-        f"  max_depth={depth:>2d}: train={train_acc:.4f}, "
-        f"test={test_acc:.4f}, gap={gap:.4f} "
-        f"{'⚠️ overfitting' if gap > 0.05 else '✅'}"
-    )
+print("\n" + "=" * 70)
+print("7. STAGING PREDICTION")
+print("=" * 70)
 
-# ── Section 4: Gradient Boosting Regressor ────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 4: Gradient Boosting Regressor")
-print("=" * 65)
+# See how model improves with each stage
+gb_staged = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+gb_staged.fit(X_train, y_train)
 
-X_reg, y_reg = make_regression(
-    n_samples=500, n_features=10, n_informative=5, noise=20, random_state=42
-)
-X_r_train, X_r_test, y_r_train, y_r_test = train_test_split(
+train_scores = []
+test_scores = []
+
+for i in range(1, 101):
+    train_scores.append(gb_staged.score(X_train[:i*5] if i*5 <= len(X_train) else X_train,
+                                         y_train[:i*5] if i*5 <= len(y_train) else y_train))
+    test_scores.append(gb_staged.staged_predict(X_test))
+
+# Plot learning curve
+plt.figure(figsize=(10, 5))
+staged_test_scores = [gb_staged.score(X_test, y_test) for gb_staged in
+                      [GradientBoostingClassifier(n_estimators=i, random_state=42).fit(X_train, y_train)
+                       for i in range(1, 101)]]
+
+plt.plot(range(1, 101), staged_test_scores, color='green')
+plt.xlabel('Number of Estimators')
+plt.ylabel('Test Accuracy')
+plt.title('Gradient Boosting: Test Accuracy vs n_estimators')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# ============================================================================
+# 8. FEATURE IMPORTANCE
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("8. FEATURE IMPORTANCE")
+print("=" * 70)
+
+feature_importance = gb_classifier.feature_importances_
+
+plt.figure(figsize=(10, 5))
+plt.barh([f'Feature {i}' for i in range(10)], feature_importance, color='orange')
+plt.xlabel('Importance')
+plt.title('Gradient Boosting Feature Importance')
+plt.tight_layout()
+plt.show()
+
+# ============================================================================
+# 9. GRADIENT BOOSTING FOR REGRESSION
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("9. GRADIENT BOOSTING FOR REGRESSION")
+print("=" * 70)
+
+X_reg, y_reg = make_regression(n_samples=500, n_features=10, noise=10, random_state=42)
+X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
     X_reg, y_reg, test_size=0.2, random_state=42
 )
 
-gb_reg = GradientBoostingRegressor(
-    n_estimators=200, learning_rate=0.1, max_depth=4, random_state=42
-)
-gb_reg.fit(X_r_train, y_r_train)
-y_pred = gb_reg.predict(X_r_test)
-
-print(f"\n  R² Score: {r2_score(y_r_test, y_pred):.4f}")
-print(f"  RMSE:     {np.sqrt(mean_squared_error(y_r_test, y_pred)):.4f}")
-
-# Staged predictions (training curve)
-print("\n  Training progress (staged R²):")
-train_scores = []
-test_scores = []
-for y_pred_staged in gb_reg.staged_predict(X_r_test):
-    test_scores.append(r2_score(y_r_test, y_pred_staged))
-
-checkpoints = [0, 24, 49, 99, 149, 199]
-for idx in checkpoints:
-    if idx < len(test_scores):
-        print(f"    After {idx + 1:>3d} rounds: R² = {test_scores[idx]:.4f}")
-
-# --- Subsample for Stochastic Gradient Boosting ---
-print("\n📌 Stochastic Gradient Boosting (subsample < 1.0):")
-for subsample in [0.5, 0.7, 0.8, 1.0]:
-    gb = GradientBoostingRegressor(
-        n_estimators=200,
-        learning_rate=0.1,
-        max_depth=4,
-        subsample=subsample,
-        random_state=42,
-    )
-    gb.fit(X_r_train, y_r_train)
-    r2 = r2_score(y_r_test, gb.predict(X_r_test))
-    print(f"  subsample={subsample:.1f}: R² = {r2:.4f}")
-
-# ── Section 5: Bagging vs Boosting Comparison ─────────────────────
-print("\n" + "=" * 65)
-print("SECTION 5: Bagging vs Boosting — Head-to-Head")
-print("=" * 65)
-
-# Use Wine dataset
-wine = load_wine()
-X_w, y_w = wine.data, wine.target
-X_w_train, X_w_test, y_w_train, y_w_test = train_test_split(
-    X_w, y_w, test_size=0.2, random_state=42
+gb_regressor = GradientBoostingRegressor(
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=5,
+    random_state=42
 )
 
-models = {
-    "Decision Tree": DecisionTreeClassifier(random_state=42),
-    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-    "AdaBoost": AdaBoostClassifier(n_estimators=100, random_state=42),
-    "Gradient Boosting": GradientBoostingClassifier(
-        n_estimators=100, random_state=42
-    ),
-}
+gb_regressor.fit(X_train_reg, y_train_reg)
+y_pred_reg = gb_regressor.predict(X_test_reg)
 
-print(f"\n  {'Model':<25s} {'Train':>8s} {'Test':>8s} {'CV(5)':>8s}")
-print("  " + "-" * 51)
+print(f"\nGradient Boosting Regressor:")
+print(f"R² Score: {r2_score(y_test_reg, y_pred_reg):.4f}")
+print(f"RMSE: {np.sqrt(mean_squared_error(y_test_reg, y_pred_reg)):.4f}")
 
-for name, model in models.items():
-    model.fit(X_w_train, y_w_train)
-    train_acc = accuracy_score(y_w_train, model.predict(X_w_train))
-    test_acc = accuracy_score(y_w_test, model.predict(X_w_test))
-    cv_acc = cross_val_score(model, X_w_train, y_w_train, cv=5).mean()
-    print(f"  {name:<25s} {train_acc:>8.4f} {test_acc:>8.4f} {cv_acc:>8.4f}")
+# ============================================================================
+# 10. COMPARISON: RANDOM FOREST VS GRADIENT BOOSTING
+# ============================================================================
 
-# ── Section 6: Feature Importance from Gradient Boosting ──────────
-print("\n" + "=" * 65)
-print("SECTION 6: Feature Importance (Gradient Boosting)")
-print("=" * 65)
+print("\n" + "=" * 70)
+print("10. RANDOM FOREST vs GRADIENT BOOSTING")
+print("=" * 70)
 
-gb_wine = GradientBoostingClassifier(
-    n_estimators=200, learning_rate=0.1, max_depth=3, random_state=42
-)
-gb_wine.fit(X_w_train, y_w_train)
+from sklearn.ensemble import RandomForestClassifier
 
-importances = gb_wine.feature_importances_
-sorted_idx = np.argsort(importances)[::-1]
+# Train both models
+rf_model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
+gb_model = GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)
 
-print("\n  Top 5 Features (by impurity decrease):")
-for i in range(5):
-    idx = sorted_idx[i]
-    print(f"    {i + 1}. {wine.feature_names[idx]:>25s}: {importances[idx]:.4f}")
+rf_model.fit(X_train, y_train)
+gb_model.fit(X_train, y_train)
 
-# ── Summary ───────────────────────────────────────────────────────
-print("\n" + "=" * 65)
-print("SUMMARY")
-print("=" * 65)
-print(
-    """
-✅ Key Takeaways:
-  1. AdaBoost: reweights misclassified samples
-  2. Gradient Boosting: fits residuals sequentially
-  3. Lower learning_rate → more estimators needed → better generalization
-  4. max_depth 3-5 works well for Gradient Boosting (shallow trees!)
-  5. subsample < 1.0 adds regularization (Stochastic GB)
-  6. Boosting can overfit! Use early stopping or regularization
-  7. Gradient Boosting often outperforms Random Forest on tabular data
+print("\nComparison on Classification:")
+print("-" * 50)
+print(f"Random Forest:       {rf_model.score(X_test, y_test):.4f}")
+print(f"Gradient Boosting:    {gb_model.score(X_test, y_test):.4f}")
 
-📊 Comparison:
-  ┌──────────────────┬─────────────────┬─────────────────┐
-  │                  │    Bagging (RF)  │    Boosting      │
-  ├──────────────────┼─────────────────┼─────────────────┤
-  │ Strategy         │  Parallel        │  Sequential      │
-  │ Reduces          │  Variance        │  Bias + Variance │
-  │ Overfitting risk │  Low             │  Higher          │
-  │ Parallelizable   │  Yes             │  Limited         │
-  │ Typical depth    │  Deep            │  Shallow         │
-  └──────────────────┴─────────────────┴─────────────────┘
+# Training time comparison
+import time
 
-📚 Next: 03_xgboost_advanced.py (XGBoost & LightGBM)
-"""
-)
+start = time.time()
+rf_model.fit(X_train, y_train)
+rf_time = time.time() - start
+
+start = time.time()
+gb_model.fit(X_train, y_train)
+gb_time = time.time() - start
+
+print(f"\nTraining Time:")
+print("-" * 50)
+print(f"Random Forest:       {rf_time:.3f}s")
+print(f"Gradient Boosting:  {gb_time:.3f}s")
+
+print("""
+Summary of Differences:
+
+| Aspect          | Random Forest | Gradient Boosting |
+|-----------------|---------------|------------------|
+| Training        | Parallel      | Sequential       |
+| Speed           | Faster        | Slower           |
+| Overfitting     | Less likely   | More prone       |
+| Hyperparameters | More robust   | Need tuning      |
+| Accuracy        | Good          | Often better     |
+
+When to use:
+- Random Forest: Quick baseline, less tuning
+- Gradient Boosting: Maximum accuracy, well-tuned
+""")
+
+print("\n" + "=" * 70)
+print("GRADIENT BOOSTING SUMMARY")
+print("=" * 70)
+print("""
+Key Takeaways:
+1. Sequential ensemble that learns from errors
+2. Start with learning_rate=0.1, tune n_estimators
+3. Use early_stopping to prevent overfitting
+4. Smaller max_depth (3-5) works well
+5. subsample < 1 adds regularization
+6. Generally more accurate but slower than Random Forest
+
+Next Steps:
+- Learn XGBoost/LightGBM for optimized implementations
+- Understand stacking for combining models
+""")

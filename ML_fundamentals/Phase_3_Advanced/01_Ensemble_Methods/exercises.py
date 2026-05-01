@@ -1,369 +1,453 @@
 """
-=================================================================
-ENSEMBLE METHODS — EXERCISES
-=================================================================
-5 hands-on exercises with increasing difficulty.
-Each exercise has: Description, Starter Code, Hints, and Solution.
+Ensemble Methods - Exercises
+============================
 
-Run each exercise independently. Try to solve before looking
-at the solution!
-=================================================================
+Practice problems to reinforce your understanding of ensemble methods.
 """
 
 import numpy as np
-from sklearn.datasets import (
-    load_wine, load_breast_cancer, make_classification, make_regression
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.metrics import accuracy_score, mean_squared_error, r2_score, classification_report
+from sklearn.datasets import make_classification, make_regression, load_iris, load_breast_cancer
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    RandomForestRegressor,
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    VotingClassifier,
+    StackingClassifier,
+    AdaBoostClassifier
 )
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score, f1_score, r2_score
-import warnings
-warnings.filterwarnings("ignore")
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 
+# Try to import XGBoost and LightGBM
+try:
+    import xgboost as xgb
+    XGB_AVAILABLE = True
+except ImportError:
+    XGB_AVAILABLE = False
+    print("XGBoost not installed")
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 1: Random Forest Basics (⭐⭐)                       ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("=" * 65)
-print("EXERCISE 1: Build & Evaluate a Random Forest")
-print("=" * 65)
+try:
+    import lightgbm as lgb
+    LGB_AVAILABLE = True
+except ImportError:
+    LGB_AVAILABLE = False
+    print("LightGBM not installed")
+
+# ============================================================================
+# EXERCISE 1: Random Forest Basics
+# ============================================================================
+
+print("=" * 70)
+print("EXERCISE 1: Random Forest Basics")
+print("=" * 70)
+
 print("""
-📝 Task:
-  1. Load the breast cancer dataset
-  2. Split 80/20 train/test
-  3. Train a RandomForestClassifier with n_estimators=200
-  4. Print train accuracy, test accuracy, and OOB score
-  5. Print the top 3 most important features
-
-🎯 Expected: Test accuracy > 0.95
+Task:
+1. Load the breast cancer dataset
+2. Split into train/test (80/20)
+3. Train a Random Forest with n_estimators=100
+4. Evaluate accuracy
+5. Find the most important feature
 """)
 
-# === YOUR CODE HERE ===
-# from sklearn.ensemble import RandomForestClassifier
-# data = load_breast_cancer()
-# ...
-# =====================
+# Your code here:
+# 1. Load breast cancer dataset
+cancer = load_breast_cancer()
+X_cancer, y_cancer = cancer.data, cancer.target
 
-
-# --- SOLUTION (scroll down) ---
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.ensemble import RandomForestClassifier
-
-data = load_breast_cancer()
-X, y = data.data, data.target
+# 2. Split data
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X_cancer, y_cancer, test_size=0.2, random_state=42
 )
 
-rf = RandomForestClassifier(n_estimators=200, oob_score=True, random_state=42)
+# 3. Train Random Forest
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
 rf.fit(X_train, y_train)
 
-print(f"  Train Accuracy: {accuracy_score(y_train, rf.predict(X_train)):.4f}")
-print(f"  Test Accuracy:  {accuracy_score(y_test, rf.predict(X_test)):.4f}")
-print(f"  OOB Score:      {rf.oob_score_:.4f}")
+# 4. Evaluate
+accuracy = accuracy_score(y_test, rf.predict(X_test))
+print(f"\nAccuracy: {accuracy:.4f}")
 
-print("\n  Top 3 features:")
-sorted_idx = np.argsort(rf.feature_importances_)[::-1]
-for i in range(3):
-    idx = sorted_idx[i]
-    print(f"    {i+1}. {data.feature_names[idx]}: {rf.feature_importances_[idx]:.4f}")
+# 5. Most important feature
+feature_importance = list(zip(cancer.feature_names, rf.feature_importances_))
+feature_importance.sort(key=lambda x: x[1], reverse=True)
+print(f"\nTop 5 Most Important Features:")
+for name, importance in feature_importance[:5]:
+    print(f"  {name}: {importance:.4f}")
 
+# ============================================================================
+# EXERCISE 2: Compare Random Forest vs Gradient Boosting
+# ============================================================================
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 2: Bagging vs Boosting Comparison (⭐⭐)              ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 2: Bagging vs Boosting Comparison")
-print("=" * 65)
+print("\n" + "=" * 70)
+print("EXERCISE 2: Compare Random Forest vs Gradient Boosting")
+print("=" * 70)
+
 print("""
-📝 Task:
-  1. Create a synthetic dataset with make_classification
-     (n_samples=1000, n_features=20, n_informative=10)
-  2. Train 4 models: DecisionTree, RandomForest, AdaBoost, GradientBoosting
-  3. Compare using 5-fold cross-validation
-  4. Print results in a table format
-
-🎯 Expected: Gradient Boosting should be the best
+Task:
+1. Generate classification data (n_samples=1000, n_features=10)
+2. Train Random Forest (n_estimators=100)
+3. Train Gradient Boosting (n_estimators=100)
+4. Compare accuracies
+5. Plot learning curves (accuracy vs n_estimators)
 """)
 
-# === YOUR CODE HERE ===
-# ...
-# =====================
-
-
-# --- SOLUTION ---
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import (
-    AdaBoostClassifier, GradientBoostingClassifier
-)
-
-X, y = make_classification(
-    n_samples=1000, n_features=20, n_informative=10,
-    n_redundant=5, random_state=42
-)
-
-models = {
-    "Decision Tree": DecisionTreeClassifier(random_state=42),
-    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-    "AdaBoost": AdaBoostClassifier(n_estimators=100, random_state=42),
-    "Gradient Boost": GradientBoostingClassifier(n_estimators=100, random_state=42),
-}
-
-print(f"\n  {'Model':<20s} {'Mean CV':>8s} {'Std':>8s}")
-print("  " + "-" * 38)
-for name, model in models.items():
-    scores = cross_val_score(model, X, y, cv=5, scoring="accuracy")
-    print(f"  {name:<20s} {scores.mean():>8.4f} {scores.std():>8.4f}")
-
-
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 3: Hyperparameter Tuning (⭐⭐⭐)                     ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 3: Tune a Gradient Boosting Classifier")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Use the wine dataset
-  2. Use RandomizedSearchCV to tune GradientBoostingClassifier
-     Parameters to tune:
-       - n_estimators: [50, 100, 200, 300]
-       - learning_rate: [0.01, 0.05, 0.1, 0.2]
-       - max_depth: [2, 3, 4, 5]
-       - subsample: [0.7, 0.8, 0.9, 1.0]
-  3. Use n_iter=20, cv=5
-  4. Print the best parameters and best score
-  5. Evaluate on test set
-
-🎯 Expected: Test accuracy > 0.94
-""")
-
-# === YOUR CODE HERE ===
-# ...
-# =====================
-
-
-# --- SOLUTION ---
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.model_selection import RandomizedSearchCV
-
-wine = load_wine()
-X, y = wine.data, wine.target
+# Your code here:
+# 1. Generate data
+X, y = make_classification(n_samples=1000, n_features=10, random_state=42)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-param_dist = {
-    "n_estimators": [50, 100, 200, 300],
-    "learning_rate": [0.01, 0.05, 0.1, 0.2],
-    "max_depth": [2, 3, 4, 5],
-    "subsample": [0.7, 0.8, 0.9, 1.0],
-}
+# 2. Train Random Forest
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+rf_acc = accuracy_score(y_test, rf.predict(X_test))
 
-rs = RandomizedSearchCV(
-    GradientBoostingClassifier(random_state=42),
-    param_dist, n_iter=20, cv=5, scoring="accuracy",
-    random_state=42, n_jobs=-1,
-)
-rs.fit(X_train, y_train)
+# 3. Train Gradient Boosting
+gb = GradientBoostingClassifier(n_estimators=100, random_state=42)
+gb.fit(X_train, y_train)
+gb_acc = accuracy_score(y_test, gb.predict(X_test))
 
-print(f"  Best CV Score: {rs.best_score_:.4f}")
-print(f"  Best Params:   {rs.best_params_}")
-print(f"  Test Accuracy: {accuracy_score(y_test, rs.predict(X_test)):.4f}")
+# 4. Compare
+print(f"\nRandom Forest Accuracy: {rf_acc:.4f}")
+print(f"Gradient Boosting Accuracy: {gb_acc:.4f}")
 
+# 5. Learning curves
+print("\nGenerating learning curves...")
+n_estimators_range = [10, 25, 50, 75, 100, 150, 200]
+rf_scores = []
+gb_scores = []
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 4: Voting Ensemble (⭐⭐⭐)                           ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 4: Build a Voting Ensemble")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Use the wine dataset
-  2. Create a VotingClassifier with:
-     - RandomForest (100 trees)
-     - GradientBoosting (100 estimators)
-     - SVM with RBF kernel (probability=True)
-  3. Compare hard voting vs soft voting
-  4. Also compare with individual model performances
-  5. Which approach works best?
+for n in n_estimators_range:
+    rf_temp = RandomForestClassifier(n_estimators=n, random_state=42)
+    rf_temp.fit(X_train, y_train)
+    rf_scores.append(rf_temp.score(X_test, y_test))
 
-🎯 Expected: Soft voting should be >= best individual model
+    gb_temp = GradientBoostingClassifier(n_estimators=n, random_state=42)
+    gb_temp.fit(X_train, y_train)
+    gb_scores.append(gb_temp.score(X_test, y_test))
+
+plt.figure(figsize=(10, 5))
+plt.plot(n_estimators_range, rf_scores, 'o-', label='Random Forest')
+plt.plot(n_estimators_range, gb_scores, 's-', label='Gradient Boosting')
+plt.xlabel('n_estimators')
+plt.ylabel('Test Accuracy')
+plt.title('Learning Curve: Random Forest vs Gradient Boosting')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# ============================================================================
+# EXERCISE 3: XGBoost Hyperparameter Tuning
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 3: XGBoost Hyperparameter Tuning")
+print("=" * 70)
+
+if XGB_AVAILABLE:
+    print("""
+Task:
+1. Use breast cancer dataset
+2. Perform grid search for:
+   - max_depth: [3, 5, 7]
+   - learning_rate: [0.05, 0.1, 0.2]
+3. Use 3-fold cross-validation
+4. Report best parameters and score
 """)
 
-# === YOUR CODE HERE ===
-# ...
-# =====================
+    # Your code here:
+    param_grid = {
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.05, 0.1, 0.2]
+    }
 
+    xgb_clf = xgb.XGBClassifier(n_estimators=100, random_state=42, verbosity=0)
 
-# --- SOLUTION ---
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.ensemble import VotingClassifier
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+    grid_search = GridSearchCV(
+        xgb_clf,
+        param_grid,
+        cv=3,
+        scoring='accuracy',
+        n_jobs=-1
+    )
 
-wine = load_wine()
-X, y = wine.data, wine.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    grid_search.fit(X_train, y_train)
 
-# Define base estimators
-rf_est = RandomForestClassifier(n_estimators=100, random_state=42)
-gb_est = GradientBoostingClassifier(n_estimators=100, random_state=42)
-svm_est = Pipeline([("scaler", StandardScaler()), ("svc", SVC(probability=True, random_state=42))])
+    print(f"\nBest Parameters: {grid_search.best_params_}")
+    print(f"Best CV Score: {grid_search.best_score_:.4f}")
+    print(f"Test Score: {grid_search.best_estimator_.score(X_test, y_test):.4f}")
+else:
+    print("Install XGBoost: pip install xgboost")
+
+# ============================================================================
+# EXERCISE 4: Build Voting Ensemble
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 4: Build Voting Ensemble")
+print("=" * 70)
+
+print("""
+Task:
+1. Load iris dataset
+2. Create ensemble with:
+   - Random Forest
+   - Logistic Regression
+   - Decision Tree
+3. Compare Hard Voting vs Soft Voting
+""")
+
+# Your code here:
+iris = load_iris()
+X_iris, y_iris = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X_iris, y_iris, test_size=0.2, random_state=42
+)
+
+# Create classifiers
+rf = RandomForestClassifier(n_estimators=50, random_state=42)
+lr = LogisticRegression(max_iter=1000, random_state=42)
+dt = DecisionTreeClassifier(max_depth=3, random_state=42)
 
 # Hard Voting
-hard_vote = VotingClassifier(
-    estimators=[("rf", rf_est), ("gb", gb_est), ("svm", svm_est)],
-    voting="hard"
+hard_voting = VotingClassifier(
+    estimators=[('rf', rf), ('lr', lr), ('dt', dt)],
+    voting='hard'
 )
-hard_vote.fit(X_train, y_train)
 
 # Soft Voting
-soft_vote = VotingClassifier(
-    estimators=[("rf", rf_est), ("gb", gb_est), ("svm", svm_est)],
-    voting="soft"
+soft_voting = VotingClassifier(
+    estimators=[('rf', rf), ('lr', lr), ('dt', dt)],
+    voting='soft'
 )
-soft_vote.fit(X_train, y_train)
 
-# Individual models
-for name, model in [("RF", rf_est), ("GB", gb_est), ("SVM", svm_est)]:
-    model.fit(X_train, y_train)
-    print(f"  {name:>12s}: {accuracy_score(y_test, model.predict(X_test)):.4f}")
+# Train and evaluate
+hard_voting.fit(X_train, y_train)
+soft_voting.fit(X_train, y_train)
 
-print(f"  {'Hard Voting':>12s}: {accuracy_score(y_test, hard_vote.predict(X_test)):.4f}")
-print(f"  {'Soft Voting':>12s}: {accuracy_score(y_test, soft_vote.predict(X_test)):.4f}")
+hard_acc = accuracy_score(y_test, hard_voting.predict(X_test))
+soft_acc = accuracy_score(y_test, soft_voting.predict(X_test))
 
+print(f"\nHard Voting Accuracy: {hard_acc:.4f}")
+print(f"Soft Voting Accuracy: {soft_acc:.4f}")
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 5: Full Stacking Pipeline (⭐⭐⭐⭐)                   ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 5: Build a Complete Stacking Pipeline")
-print("=" * 65)
+# ============================================================================
+# EXERCISE 5: Handle Imbalanced Data
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 5: Handle Imbalanced Data with Ensemble")
+print("=" * 70)
+
 print("""
-📝 Task:
-  1. Create a synthetic dataset (n_samples=2000, n_features=30)
-  2. Build a StackingClassifier with:
-     Base models:
-       - RandomForest
-       - GradientBoosting
-       - KNN (n_neighbors=7)
-       - SVM (with scaling pipeline)
-     Meta-learner:
-       - LogisticRegression
-  3. Compare stacking vs best individual model
-  4. Use 5-fold cross-validation for evaluation
-  5. Print a comprehensive comparison table
-
-🎯 Challenge: Beat each individual model with stacking
+Task:
+1. Create imbalanced dataset (10% positive class)
+2. Train Random Forest without class_weight
+3. Train Random Forest with class_weight='balanced'
+4. Compare F1 scores
 """)
 
-# === YOUR CODE HERE ===
-# ...
-# =====================
-
-
-# --- SOLUTION ---
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.ensemble import StackingClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
-
-X, y = make_classification(
-    n_samples=2000, n_features=30, n_informative=15,
-    n_redundant=5, random_state=42
+# Your code here:
+# 1. Create imbalanced data
+X_imbalanced, y_imbalanced = make_classification(
+    n_samples=1000,
+    n_features=10,
+    weights=[0.9, 0.1],  # 90% class 0, 10% class 1
+    random_state=42
 )
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_imbalanced, y_imbalanced, test_size=0.2, random_state=42
+)
+
+# 2. Train without class_weight
+rf_normal = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_normal.fit(X_train, y_train)
+y_pred_normal = rf_normal.predict(X_test)
+
+# 3. Train with class_weight
+rf_balanced = RandomForestClassifier(
+    n_estimators=100,
+    class_weight='balanced',
+    random_state=42
+)
+rf_balanced.fit(X_train, y_train)
+y_pred_balanced = rf_balanced.predict(X_test)
+
+# 4. Compare
+from sklearn.metrics import f1_score, precision_score, recall_score
+
+print(f"\nWithout class_weight:")
+print(f"  Accuracy: {accuracy_score(y_test, y_pred_normal):.4f}")
+print(f"  F1 Score: {f1_score(y_test, y_pred_normal):.4f}")
+print(f"  Precision: {precision_score(y_test, y_pred_normal):.4f}")
+print(f"  Recall: {recall_score(y_test, y_pred_normal):.4f}")
+
+print(f"\nWith class_weight='balanced':")
+print(f"  Accuracy: {accuracy_score(y_test, y_pred_balanced):.4f}")
+print(f"  F1 Score: {f1_score(y_test, y_pred_balanced):.4f}")
+print(f"  Precision: {precision_score(y_test, y_pred_balanced):.4f}")
+print(f"  Recall: {recall_score(y_test, y_pred_balanced):.4f}")
+
+# ============================================================================
+# EXERCISE 6: Build Stacking Ensemble
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 6: Build Stacking Ensemble")
+print("=" * 70)
+
+print("""
+Task:
+1. Use breast cancer dataset
+2. Create stacking ensemble with:
+   - Base models: RF, GB, NB
+   - Meta-learner: Logistic Regression
+3. Evaluate and compare with individual models
+""")
+
+# Your code here:
+cancer = load_breast_cancer()
+X, y = cancer.data, cancer.target
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Define base models
-base_models = [
-    ("rf", RandomForestClassifier(n_estimators=100, random_state=42)),
-    ("gb", GradientBoostingClassifier(n_estimators=100, random_state=42)),
-    ("knn", KNeighborsClassifier(n_neighbors=7)),
-    ("svm", Pipeline([("scaler", StandardScaler()), ("svc", SVC(probability=True, random_state=42))])),
-]
+# Individual models
+rf = RandomForestClassifier(n_estimators=50, random_state=42)
+gb = GradientBoostingClassifier(n_estimators=50, random_state=42)
+from sklearn.naive_bayes import GaussianNB
+nb = GaussianNB()
 
-# Build stacking
+# Train individual models
+rf.fit(X_train, y_train)
+gb.fit(X_train, y_train)
+nb.fit(X_train, y_train)
+
+print("\nIndividual Model Scores:")
+print(f"  Random Forest: {rf.score(X_test, y_test):.4f}")
+print(f"  Gradient Boosting: {gb.score(X_test, y_test):.4f}")
+print(f"  Naive Bayes: {nb.score(X_test, y_test):.4f}")
+
+# Stacking
 stacking = StackingClassifier(
-    estimators=base_models,
+    estimators=[
+        ('rf', RandomForestClassifier(n_estimators=50, random_state=42)),
+        ('gb', GradientBoostingClassifier(n_estimators=50, random_state=42)),
+        ('nb', GaussianNB())
+    ],
     final_estimator=LogisticRegression(max_iter=1000),
-    cv=5,
+    cv=5
 )
+
 stacking.fit(X_train, y_train)
+print(f"\nStacking Score: {stacking.score(X_test, y_test):.4f}")
 
-print(f"\n  {'Model':<20s} {'Test Acc':>10s} {'CV Mean':>10s}")
-print("  " + "-" * 42)
+# ============================================================================
+# EXERCISE 7: LightGBM (if available)
+# ============================================================================
 
-for name, model in base_models:
-    model.fit(X_train, y_train)
-    test_acc = accuracy_score(y_test, model.predict(X_test))
-    cv_scores = cross_val_score(model, X_train, y_train, cv=5)
-    print(f"  {name:<20s} {test_acc:>10.4f} {cv_scores.mean():>10.4f}")
+print("\n" + "=" * 70)
+print("EXERCISE 7: LightGBM")
+print("=" * 70)
 
-stacking_acc = accuracy_score(y_test, stacking.predict(X_test))
-stacking_cv = cross_val_score(stacking, X_train, y_train, cv=3).mean()
-print(f"  {'STACKING':<20s} {stacking_acc:>10.4f} {stacking_cv:>10.4f}")
+if LGB_AVAILABLE:
+    print("""
+Task:
+1. Use breast cancer dataset
+2. Train LightGBM classifier
+3. Use early stopping
+4. Evaluate performance
+""")
 
-print("\n✅ Exercises complete! Move on to 02_SVM next.")
+    # Your code here:
+    lgb_clf = lgb.LGBMClassifier(
+        n_estimators=500,
+        learning_rate=0.1,
+        num_leaves=31,
+        random_state=42,
+        verbose=-1
+    )
+
+    lgb_clf.fit(
+        X_train, y_train,
+        eval_set=[(X_test, y_test)],
+        callbacks=[lgb.early_stopping(stopping_rounds=10, verbose=False)]
+    )
+
+    print(f"\nBest Iteration: {lgb_clf.best_iteration_}")
+    print(f"Test Accuracy: {lgb_clf.score(X_test, y_test):.4f}")
+else:
+    print("Install LightGBM: pip install lightgbm")
+
+# ============================================================================
+# BONUS EXERCISE: Feature Engineering with Ensemble
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("BONUS: Feature Engineering with Ensemble")
+print("=" * 70)
+
+print("""
+Task:
+1. Generate regression data with noise
+2. Create polynomial features (degree 2)
+3. Train Random Forest Regressor
+4. Evaluate R² score
+""")
+
+# Your code here:
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.ensemble import RandomForestRegressor
+
+# 1. Generate data
+X_reg, y_reg = make_regression(n_samples=500, n_features=5, noise=10, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X_reg, y_reg, test_size=0.2, random_state=42)
+
+# 2. Create polynomial features
+poly = PolynomialFeatures(degree=2, include_bias=False)
+X_train_poly = poly.fit_transform(X_train)
+X_test_poly = poly.transform(X_test)
+
+print(f"Original features: {X_train.shape[1]}")
+print(f"Polynomial features: {X_train_poly.shape[1]}")
+
+# 3. Train Random Forest
+rf_reg = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_reg.fit(X_train_poly, y_train)
+y_pred = rf_reg.predict(X_test_poly)
+
+# 4. Evaluate
+r2 = r2_score(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+print(f"\nR² Score: {r2:.4f}")
+print(f"RMSE: {rmse:.4f}")
+
+# ============================================================================
+# SUMMARY
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE SUMMARY")
+print("=" * 70)
+
+print("""
+What you practiced:
+1. Random Forest classification
+2. Random Forest vs Gradient Boosting comparison
+3. XGBoost hyperparameter tuning
+4. Voting ensemble (Hard vs Soft)
+5. Handling imbalanced data
+6. Stacking ensemble
+7. LightGBM with early stopping
+8. Feature engineering with ensemble
+
+Next Steps:
+- Try these on real datasets
+- Experiment with different hyperparameters
+- Combine multiple techniques
+""")

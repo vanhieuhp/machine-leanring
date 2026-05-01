@@ -1,301 +1,473 @@
 """
-=================================================================
-01 - TEXT PREPROCESSING: Cleaning and Preparing Text Data
-=================================================================
-Topics:
-  1. Basic text cleaning
-  2. Tokenization
-  3. Stopword removal
-  4. Stemming
-  5. Lemmatization
-  6. Complete preprocessing pipeline
-  7. Regular expressions for text
-=================================================================
-Prerequisites: pip install nltk
-  Run once: python -c "import nltk; nltk.download('punkt_tab'); nltk.download('stopwords'); nltk.download('wordnet')"
-=================================================================
+Text Preprocessing - NLP Basics
+================================
+
+This module covers:
+- Text cleaning
+- Tokenization
+- Stopword removal
+- Stemming and Lemmatization
+- Regular expressions
 """
 
+import numpy as np
 import re
-import string
-import warnings
-warnings.filterwarnings("ignore")
 
-# Try importing NLTK
+# Try to import NLTK
 try:
     import nltk
     from nltk.tokenize import word_tokenize, sent_tokenize
     from nltk.corpus import stopwords
-    from nltk.stem import PorterStemmer, LancasterStemmer
-    from nltk.stem import WordNetLemmatizer
-    # Download required data (silent)
-    for pkg in ['punkt_tab', 'stopwords', 'wordnet', 'averaged_perceptron_tagger_eng']:
-        nltk.download(pkg, quiet=True)
-    HAS_NLTK = True
-    print("✅ NLTK imported")
+    from nltk.stem import PorterStemmer, WordNetLemmatizer
+    NLTK_AVAILABLE = True
 except ImportError:
-    HAS_NLTK = False
-    print("❌ NLTK not installed. Run: pip install nltk")
+    NLTK_AVAILABLE = False
+    print("NLTK not installed. Install with: pip install nltk")
 
-# ── Section 1: Basic Text Cleaning ────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 1: Basic Text Cleaning")
-print("=" * 65)
+# ============================================================================
+# 1. TEXT CLEANING
+# ============================================================================
 
-sample_text = "I can't BELIEVE it!!! This is the BEST movie I've ever seen 🎬🎬 #amazing @director123 https://example.com"
-
-print(f"\n  Original: '{sample_text}'\n")
-
-# Step 1: Lowercase
-text_lower = sample_text.lower()
-print(f"  1. Lowercase:      '{text_lower}'")
-
-# Step 2: Remove URLs
-text_no_url = re.sub(r'https?://\S+|www\.\S+', '', text_lower)
-print(f"  2. Remove URLs:    '{text_no_url}'")
-
-# Step 3: Remove @mentions and #hashtags
-text_no_mentions = re.sub(r'[@#]\w+', '', text_no_url)
-print(f"  3. Remove @/#:     '{text_no_mentions}'")
-
-# Step 4: Remove emojis and special chars
-text_clean = re.sub(r'[^\w\s]', '', text_no_mentions)
-print(f"  4. Remove special: '{text_clean}'")
-
-# Step 5: Remove extra whitespace
-text_final = ' '.join(text_clean.split())
-print(f"  5. Clean spaces:   '{text_final}'")
-
-# ── Section 2: Tokenization ──────────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 2: Tokenization")
-print("=" * 65)
+print("=" * 70)
+print("1. TEXT CLEANING")
+print("=" * 70)
 
 print("""
-  Tokenization = splitting text into individual tokens (words/sentences)
+Text Cleaning:
+- Convert to lowercase
+- Remove special characters
+- Remove numbers
+- Remove extra whitespace
 """)
 
-text = "Natural language processing is amazing! It helps computers understand human language."
+sample_text = "Hello, World! This is a SAMPLE text with SOME 123 numbers and @special #characters!"
 
-# Method 1: Simple split
-tokens_split = text.split()
-print(f"  str.split():    {tokens_split[:6]}...")
+def clean_text(text):
+    # Convert to lowercase
+    text = text.lower()
 
-# Method 2: NLTK word tokenize
-if HAS_NLTK:
-    tokens_nltk = word_tokenize(text)
-    print(f"  word_tokenize(): {tokens_nltk[:6]}...")
-    
+    # Remove special characters (keep only letters, numbers, spaces)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+
+    return text
+
+print(f"Original: {sample_text}")
+print(f"Cleaned:  {clean_text(sample_text)}")
+
+# More comprehensive cleaning
+def clean_text_detailed(text):
+    steps = []
+
+    # Original
+    steps.append(('Original', text))
+
+    # Lowercase
+    text = text.lower()
+    steps.append(('Lowercase', text))
+
+    # Remove URLs
+    text = re.sub(r'http\S+|www\.\S+', '', text)
+    steps.append(('Remove URLs', text))
+
+    # Remove HTML tags
+    text = re.sub(r'<.*?>', '', text)
+    steps.append(('Remove HTML', text))
+
+    # Remove special characters
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    steps.append(('Remove special chars', text))
+
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    steps.append(('Remove whitespace', text))
+
+    return text
+
+# Demo with HTML
+html_text = "<p>This is a <b>sample</b> text with a <a href='http://example.com'>link</a></p>"
+print(f"\nHTML Example:")
+print(f"Original: {html_text}")
+print(f"Cleaned:  {clean_text_detailed(html_text)}")
+
+# ============================================================================
+# 2. TOKENIZATION
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("2. TOKENIZATION")
+print("=" * 70)
+
+print("""
+Tokenization: Split text into smaller units (tokens)
+- Word tokenization: Split into words
+- Sentence tokenization: Split into sentences
+- Character tokenization: Split into characters
+""")
+
+text = "This is a sentence. This is another sentence! And one more?"
+
+if NLTK_AVAILABLE:
+    # Word tokenization
+    words = word_tokenize(text)
+    print(f"Word tokens: {words}")
+
     # Sentence tokenization
     sentences = sent_tokenize(text)
-    print(f"\n  Sentence tokenization:")
-    for i, sent in enumerate(sentences):
-        print(f"    {i+1}. '{sent}'")
+    print(f"Sentence tokens: {sentences}")
 
-# Method 3: Regex tokenizer
-tokens_regex = re.findall(r'\b\w+\b', text.lower())
-print(f"\n  Regex tokenize:  {tokens_regex[:6]}...")
+    # Download required data
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except:
+        nltk.download('punkt', quiet=True)
 
-# ── Section 3: Stopword Removal ───────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 3: Stopword Removal")
-print("=" * 65)
-
-print("""
-  Stopwords = common words that carry little meaning:
-    "the", "is", "at", "which", "and", "a", "an", "in", etc.
-""")
-
-if HAS_NLTK:
-    stop_words = set(stopwords.words('english'))
-    print(f"  Total English stopwords: {len(stop_words)}")
-    print(f"  Examples: {list(stop_words)[:15]}")
-    
-    # Remove stopwords
-    text = "This is a very good movie and I think it is the best one"
-    tokens = word_tokenize(text.lower())
-    filtered = [w for w in tokens if w not in stop_words and w.isalpha()]
-    
-    print(f"\n  Original tokens:  {tokens}")
-    print(f"  After stopwords:  {filtered}")
-    print(f"  Removed {len(tokens) - len(filtered)} stopwords")
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except:
+        nltk.download('punkt_tab', quiet=True)
 else:
-    # Manual stopword removal
-    stop_words = {"the", "a", "an", "is", "are", "was", "were", "in", "on",
-                  "at", "to", "for", "of", "and", "or", "it", "this", "that",
-                  "i", "my", "me", "we", "you", "he", "she", "they", "very"}
-    text = "this is a very good movie and i think it is the best one"
-    tokens = text.split()
-    filtered = [w for w in tokens if w not in stop_words]
-    print(f"\n  Original: {tokens}")
-    print(f"  Filtered: {filtered}")
+    # Simple split-based tokenization
+    words = text.split()
+    print(f"Word tokens (simple): {words}")
 
-# ── Section 4: Stemming ──────────────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 4: Stemming")
-print("=" * 65)
+    sentences = text.split('.')
+    sentences = [s.strip() for s in sentences if s.strip()]
+    print(f"Sentence tokens (simple): {sentences}")
 
-print("""
-  Stemming = reducing words to their root/stem by chopping suffixes
-  Fast but rough — may produce non-words!
-""")
+# ============================================================================
+# 3. STOPWORD REMOVAL
+# ============================================================================
 
-words = ["running", "runner", "ran", "runs", "easily", "fairly",
-         "connection", "connected", "connecting", "flies", "flying"]
-
-if HAS_NLTK:
-    porter = PorterStemmer()
-    lancaster = LancasterStemmer()
-    
-    print(f"\n  {'Word':<15s} {'Porter':>12s} {'Lancaster':>12s}")
-    print("  " + "-" * 41)
-    for word in words:
-        print(f"  {word:<15s} {porter.stem(word):>12s} {lancaster.stem(word):>12s}")
-    
-    print("\n  💡 Porter is the most widely used stemmer")
-    print("     Lancaster is more aggressive")
-
-# ── Section 5: Lemmatization ──────────────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 5: Lemmatization")
-print("=" * 65)
+print("\n" + "=" * 70)
+print("3. STOPWORD REMOVAL")
+print("=" * 70)
 
 print("""
-  Lemmatization = reducing words to dictionary form (lemma)
-  Slower but accurate — always produces real words!
+Stopwords: Common words that don't add meaning
+- Examples: the, is, a, an, and, or, but
+
+Why remove them:
+- Reduce noise
+- Speed up processing
+- Focus on important words
 """)
 
-if HAS_NLTK:
-    lemmatizer = WordNetLemmatizer()
-    
-    test_words = [
-        ("running", "v"),   # verb
-        ("ran", "v"),
-        ("better", "a"),    # adjective
-        ("flies", "n"),     # noun
-        ("flies", "v"),     # verb
-        ("geese", "n"),
-        ("studies", "v"),
-        ("studying", "v"),
-    ]
-    
-    print(f"\n  {'Word':<12s} {'POS':>5s} {'Stemmed':>12s} {'Lemmatized':>12s}")
-    print("  " + "-" * 45)
-    for word, pos in test_words:
-        stemmed = porter.stem(word)
-        lemmatized = lemmatizer.lemmatize(word, pos=pos)
-        print(f"  {word:<12s} {pos:>5s} {stemmed:>12s} {lemmatized:>12s}")
-    
-    print("""
-  ✦ Lemmatization gives "better" → "good" (stem gives "better")
-  ✦ Lemmatization gives "flies" → "fly" (stem gives "fli")
-  ✦ But lemmatization needs POS tag for best results!
-    """)
-
-# ── Section 6: Complete Preprocessing Pipeline ───────────────────
-print("=" * 65)
-print("SECTION 6: Complete Preprocessing Pipeline")
-print("=" * 65)
-
-
-def preprocess_text(text, use_lemma=True):
-    """Complete text preprocessing pipeline."""
-    # 1. Lowercase
-    text = text.lower()
-    
-    # 2. Remove URLs
-    text = re.sub(r'https?://\S+|www\.\S+', '', text)
-    
-    # 3. Remove HTML tags
-    text = re.sub(r'<.*?>', '', text)
-    
-    # 4. Remove @mentions and #hashtags
-    text = re.sub(r'[@#]\w+', '', text)
-    
-    # 5. Remove punctuation and special characters
-    text = re.sub(r'[^\w\s]', '', text)
-    
-    # 6. Remove numbers
-    text = re.sub(r'\d+', '', text)
-    
-    # 7. Tokenize
-    if HAS_NLTK:
-        tokens = word_tokenize(text)
-    else:
-        tokens = text.split()
-    
-    # 8. Remove stopwords
-    if HAS_NLTK:
+if NLTK_AVAILABLE:
+    try:
         stop_words = set(stopwords.words('english'))
-    else:
-        stop_words = {"the", "a", "an", "is", "are", "was", "in", "on",
-                      "at", "to", "for", "of", "and", "or", "it", "this", "that"}
-    tokens = [w for w in tokens if w not in stop_words and len(w) > 1]
-    
-    # 9. Stem or Lemmatize
-    if HAS_NLTK:
-        if use_lemma:
-            lemmatizer = WordNetLemmatizer()
-            tokens = [lemmatizer.lemmatize(w) for w in tokens]
-        else:
-            stemmer = PorterStemmer()
-            tokens = [stemmer.stem(w) for w in tokens]
-    
-    # 10. Join back
-    return ' '.join(tokens)
+    except:
+        nltk.download('stopwords', quiet=True)
+        stop_words = set(stopwords.words('english'))
 
+    text = "This is a sample text that demonstrates stopword removal"
+    tokens = word_tokenize(text.lower())
+
+    filtered = [word for word in tokens if word not in stop_words]
+
+    print(f"Original: {text}")
+    print(f"Tokens: {tokens}")
+    print(f"After stopword removal: {filtered}")
+    print(f"\nCommon stopwords: {list(stop_words)[:10]}")
+else:
+    # Simple stopword list
+    stop_words = {'the', 'is', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+    text = "This is a sample text that demonstrates stopword removal"
+    words = text.lower().split()
+    filtered = [w for w in words if w not in stop_words]
+
+    print(f"Original: {text}")
+    print(f"After stopword removal: {filtered}")
+
+# ============================================================================
+# 4. STEMMING
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("4. STEMMING")
+print("=" * 70)
+
+print("""
+Stemming: Reduce words to root form
+- Removes prefixes/suffixes
+- Fast but imprecise
+- Example: "running" → "run", "connected" → "connect"
+
+Algorithms:
+- Porter Stemmer (most common)
+- Snowball Stemmer
+- Lancaster Stemmer
+""")
+
+words = ["running", "runs", "runner", "ran", "connection", "connected", "connecting", "happiness", "happier", "happiest"]
+
+if NLTK_AVAILABLE:
+    try:
+        nltk.data.find('corpora/wordnet')
+    except:
+        nltk.download('wordnet', quiet=True)
+
+    stemmer = PorterStemmer()
+
+    print("Porter Stemmer examples:")
+    for word in words:
+        stemmed = stemmer.stem(word)
+        print(f"  {word:15} → {stemmed}")
+else:
+    print("NLTK not available for stemming demonstration")
+
+# ============================================================================
+# 5. LEMMATIZATION
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("5. LEMMATIZATION")
+print("=" * 70)
+
+print("""
+Lemmatization: Reduce words to dictionary form
+- Considers word context (POS tagging)
+- More accurate than stemming
+- Example: "running" → "run", "better" → "good"
+
+Unlike stemming:
+- Returns valid dictionary words
+- Slower but more accurate
+""")
+
+words = ["running", "ran", "better", "good", "ate", "eating", "was", "were", "children", "child"]
+
+if NLTK_AVAILABLE:
+    lemmatizer = WordNetLemmatizer()
+
+    print("WordNet Lemmatizer examples:")
+    for word in words:
+        lemma = lemmatizer.lemmatize(word)
+        print(f"  {word:15} → {lemma}")
+
+    # Lemmatization with POS
+    print("\nWith POS (verb):")
+    for word in ["running", "ate", "gone"]:
+        lemma = lemmatizer.lemmatize(word, pos='v')
+        print(f"  {word:15} → {lemma} (verb)")
+else:
+    print("NLTK not available for lemmatization demonstration")
+
+# ============================================================================
+# 6. REGULAR EXPRESSIONS
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("6. REGULAR EXPRESSIONS")
+print("=" * 70)
+
+print("""
+Regular Expressions: Pattern matching for text
+
+Common patterns:
+- \d: digit [0-9]
+- \w: word character [a-zA-Z0-9_]
+- \s: whitespace
+- +: one or more
+- *: zero or more
+- ?: optional
+- []: character class
+""")
+
+text = "Contact me at john@example.com or call 555-123-4567. My ID is #12345."
+
+print(f"Original: {text}")
+print(f"\nExtraction examples:")
+
+# Extract email
+emails = re.findall(r'\b[\w.-]+@[\w.-]+\.\w+\b', text)
+print(f"  Emails: {emails}")
+
+# Extract phone
+phones = re.findall(r'\d{3}-\d{3}-\d{4}', text)
+print(f"  Phone numbers: {phones}")
+
+# Extract hashtags
+hashtags = re.findall(r'#\w+', text)
+print(f"  Hashtags: {hashtags}")
+
+# Extract numbers
+numbers = re.findall(r'\d+', text)
+print(f"  Numbers: {numbers}")
+
+# ============================================================================
+# 7. COMPLETE PREPROCESSING PIPELINE
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("7. COMPLETE PREPROCESSING PIPELINE")
+print("=" * 70)
+
+def preprocess_text(text, remove_stopwords=True, stem=False):
+    """Complete text preprocessing pipeline"""
+
+    # Convert to lowercase
+    text = text.lower()
+
+    # Remove URLs
+    text = re.sub(r'http\S+|www\.\S+', '', text)
+
+    # Remove special characters (keep spaces)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+
+    # Tokenize
+    words = text.split()
+
+    # Remove stopwords
+    if remove_stopwords and NLTK_AVAILABLE:
+        try:
+            stop_words = set(stopwords.words('english'))
+            words = [w for w in words if w not in stop_words]
+        except:
+            pass
+
+    # Stemming
+    if stem and NLTK_AVAILABLE:
+        stemmer = PorterStemmer()
+        words = [stemmer.stem(w) for w in words]
+
+    return words
 
 # Test the pipeline
-test_texts = [
-    "I absolutely LOVED this movie!! 🎬 Best I've seen in years!!! #amazing",
-    "The food was terrible... Worst restaurant ever :( @manager",
-    "Check out this new product at https://example.com !!! It's AMAZING!!!",
-    "<p>Running and flying are <b>exciting</b> activities!!</p>",
-]
+sample = "The quick brown fox jumps over the lazy dog! Visit https://example.com for more info."
 
-print("\n  Preprocessing results:")
-for text in test_texts:
-    clean = preprocess_text(text)
-    print(f"\n  Raw:   '{text}'")
-    print(f"  Clean: '{clean}'")
+print(f"Original: {sample}")
+print(f"\nAfter preprocessing:")
+print(f"  Without stopwords: {preprocess_text(sample, remove_stopwords=True, stem=False)}")
+print(f"  With stemming:    {preprocess_text(sample, remove_stopwords=True, stem=True)}")
 
-# ── Section 7: Regex Patterns for Text ────────────────────────────
-print("\n" + "=" * 65)
-print("SECTION 7: Useful Regex Patterns")
-print("=" * 65)
+# ============================================================================
+# 8. HANDLING EMOJIS AND SPECIAL TEXT
+# ============================================================================
 
-patterns = {
-    "Email": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-    "URL": r'https?://\S+',
-    "Phone": r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
-    "HTML Tags": r'<[^>]+>',
-    "Hashtag": r'#\w+',
-    "Mention": r'@\w+',
-    "Number": r'\b\d+\b',
+print("\n" + "=" * 70)
+print("8. HANDLING EMOJIS AND SPECIAL TEXT")
+print("=" * 70)
+
+text_with_emoji = "I love this! 😊 Great job! 🎉 #winning"
+
+def remove_emoji(text):
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags
+        "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', text)
+
+print(f"With emoji: {text_with_emoji}")
+print(f"After removing emoji: {remove_emoji(text_with_emoji)}")
+
+# ============================================================================
+# 9. TEXT NORMALIZATION
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("9. TEXT NORMALIZATION")
+print("=" * 70)
+
+print("""
+Text Normalization: Standardize text variations
+
+Common techniques:
+- Contraction expansion: "don't" → "do not"
+- Repeated characters: "loooove" → "loove"
+- Slang: "gonna" → "going to"
+- Abbreviations: "U.S.A." → "USA"
+""")
+
+# Handle contractions
+contractions = {
+    "don't": "do not",
+    "doesn't": "does not",
+    "won't": "will not",
+    "can't": "cannot",
+    "i'm": "i am",
+    "you're": "you are",
+    "they're": "they are",
+    "gonna": "going to",
+    "wanna": "want to",
+    "gotta": "got to"
 }
 
-sample = "Contact john@example.com or call 555-123-4567. Visit https://site.com #hello @user <b>bold</b> 42"
+text = "I don't know what's gonna happen. You're gonna love this!"
 
-print(f"\n  Sample: '{sample}'\n")
-for name, pattern in patterns.items():
-    matches = re.findall(pattern, sample)
-    print(f"  {name:<12s}: {matches}")
+def expand_contractions(text):
+    for contraction, expansion in contractions.items():
+        text = re.sub(contraction, expansion, text, flags=re.IGNORECASE)
+    return text
 
-# ── Summary ───────────────────────────────────────────────────────
-print("\n" + "=" * 65)
-print("SUMMARY")
-print("=" * 65)
+print(f"Original: {text}")
+print(f"Expanded: {expand_contractions(text)}")
+
+# Handle repeated characters
+def remove_repeated_chars(text):
+    return re.sub(r'(.)\1{2,}', r'\1\1', text)
+
+text_repeated = "This is soooooo coooooool!!!"
+print(f"\nRepeated chars example:")
+print(f"Original: {text_repeated}")
+print(f"Fixed:    {remove_repeated_chars(text_repeated)}")
+
+# ============================================================================
+# 10. PRACTICAL EXAMPLE
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("10. PRACTICAL EXAMPLE")
+print("=" * 70)
+
+# Sample reviews
+reviews = [
+    "This product is AMAZING!!! I love it so much 😊 #best",
+    "Terrible quality. Don't buy this. Worst purchase ever 😡",
+    "It's okay, not great not terrible. Average product.",
+    "Just received my order. Works perfectly! Highly recommend.",
+    "What a waste of money. Complete scam 😤 #fraud"
+]
+
+print("Preprocessing reviews:")
+print("-" * 50)
+
+for review in reviews:
+    processed = preprocess_text(review)
+    print(f"Original:  {review}")
+    print(f"Processed: {processed}")
+    print()
+
+print("\n" + "=" * 70)
+print("TEXT PREPROCESSING SUMMARY")
+print("=" * 70)
+
 print("""
-✅ Key Takeaways:
-  1. Always clean text before analysis (lowercase, remove noise)
-  2. Tokenization splits text into processable units
-  3. Remove stopwords to focus on meaningful words
-  4. Stemming is fast but crude; Lemmatization is accurate
-  5. Build a reusable preprocessing pipeline
-  6. Regex is powerful for pattern matching in text
+Key Takeaways:
+1. Clean text: lowercase, remove special chars
+2. Tokenize: split into words/sentences
+3. Remove stopwords: filter common words
+4. Stemming: fast but imprecise
+5. Lemmatization: accurate dictionary form
+6. Regex: powerful pattern matching
 
-📋 Standard Pipeline:
-  lowercase → remove_noise → tokenize → stopwords → lemmatize
+Preprocessing Pipeline:
+1. Lowercase
+2. Remove URLs, HTML
+3. Remove special characters
+4. Tokenize
+5. Remove stopwords
+6. Stem/Lemmatize
+7. Join tokens
 
-📚 Next: 02_text_representation.py (BoW, TF-IDF)
+Next Steps:
+- Learn text representation (BoW, TF-IDF)
+- Apply to real NLP tasks
 """)

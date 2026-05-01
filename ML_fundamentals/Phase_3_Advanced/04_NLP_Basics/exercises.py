@@ -1,287 +1,307 @@
 """
-=================================================================
-NLP BASICS — EXERCISES
-=================================================================
-5 hands-on exercises with increasing difficulty.
-=================================================================
+NLP Basics - Exercises
+=======================
+
+Practice problems for NLP.
 """
 
 import numpy as np
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.pipeline import Pipeline
-from sklearn.metrics.pairwise import cosine_similarity
-import warnings
-warnings.filterwarnings("ignore")
+from sklearn.naive_bayes import MultinomialNB
 
+# Try to import NLTK
+try:
+    import nltk
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import stopwords
+    NLTK_AVAILABLE = True
+except ImportError:
+    NLTK_AVAILABLE = False
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 1: Text Preprocessing Function (⭐⭐)                ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("=" * 65)
-print("EXERCISE 1: Build a Text Preprocessing Function")
-print("=" * 65)
+# ============================================================================
+# EXERCISE 1: Text Preprocessing
+# ============================================================================
+
+print("=" * 70)
+print("EXERCISE 1: Text Preprocessing")
+print("=" * 70)
+
 print("""
-📝 Task:
-  1. Write a function clean_text(text) that:
-     - Converts to lowercase
-     - Removes URLs, @mentions, #hashtags
-     - Removes punctuation and special chars
-     - Removes extra whitespace
-  2. Test on the provided sample texts
-
-🎯 Expected: Each sample should be cleaned properly
+Task:
+1. Create a function to clean text
+2. Handle: lowercase, URLs, special characters
+3. Apply to sample reviews
 """)
 
-# === YOUR CODE HERE ===
-# def clean_text(text):
-#     ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
-
+reviews = [
+    "This is AMAZING!!! BEST product ever http://example.com",
+    "TERRIBLE! <b>Do not buy</b> this is a scam!!!",
+    "It's okay. Not great but works fine."
+]
 
 def clean_text(text):
+    # Your code here:
     text = text.lower()
-    text = re.sub(r'https?://\S+|www\.\S+', '', text)
-    text = re.sub(r'[@#]\w+', '', text)
-    text = re.sub(r'[^\w\s]', '', text)
-    text = re.sub(r'\d+', '', text)
+    text = re.sub(r'http\S+|www\.\S+', '', text)
+    text = re.sub(r'<.*?>', '', text)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
     text = ' '.join(text.split())
     return text
 
+print("Original vs Cleaned:")
+for review in reviews:
+    cleaned = clean_text(review)
+    print(f"  Original:  {review}")
+    print(f"  Cleaned:  {cleaned}")
+    print()
 
-samples = [
-    "AMAZING movie!!! Check https://review.com #best @director 5/5 ⭐⭐⭐",
-    "Worst film ever... DON'T watch!! @studio123 #terrible",
-    "  It's   okay,  nothing   special   ",
-]
+# ============================================================================
+# EXERCISE 2: Tokenization
+# ============================================================================
 
-for s in samples:
-    print(f"  Raw:   '{s}'")
-    print(f"  Clean: '{clean_text(s)}'\n")
+print("\n" + "=" * 70)
+print("EXERCISE 2: Tokenization")
+print("=" * 70)
 
-
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 2: BoW vs TF-IDF Comparison (⭐⭐)                   ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("=" * 65)
-print("EXERCISE 2: Compare BoW vs TF-IDF")
-print("=" * 65)
 print("""
-📝 Task:
-  1. Use the movie review dataset below
-  2. Build two pipelines:
-     - CountVectorizer + MultinomialNB
-     - TfidfVectorizer + MultinomialNB
-  3. Compare accuracy on test set
-  4. Which representation works better?
-
-🎯 Expected: TF-IDF should be equal or better
+Task:
+1. Tokenize sample sentences
+2. Count tokens
+3. Compare approaches
 """)
 
-# Dataset
-reviews = [
-    "This movie was amazing and wonderful", "Great film I loved it",
-    "Excellent movie with brilliant acting", "Best movie ever made",
-    "Loved the story and characters", "Fantastic performance great movie",
-    "Really enjoyed this wonderful film", "Amazing storyline loved it",
-    "Beautiful movie excellent direction", "Superb acting great film",
-    "Terrible movie worst ever seen", "Awful film hated every minute",
-    "Boring and predictable waste time", "Horrible acting bad movie",
-    "Disappointed worst film year", "Dreadful movie avoid this garbage",
-    "Stupid plot terrible dialogue", "Bad movie poor direction",
-    "Waste of time awful storyline", "Painfully boring terrible film",
-]
-labels = [1]*10 + [0]*10
+text = "I love natural language processing! It's fascinating."
 
-# === YOUR CODE HERE ===
-# ...
+if NLTK_AVAILABLE:
+    # NLTK tokenization
+    tokens = word_tokenize(text)
+    print(f"NLTK tokens: {tokens}")
+else:
+    # Simple split
+    tokens = text.split()
+    print(f"Simple tokens: {tokens}")
 
-# === SOLUTION ===
-print("--- SOLUTION ---")
-X_train, X_test, y_train, y_test = train_test_split(
-    reviews, labels, test_size=0.3, random_state=42, stratify=labels
-)
+# Count
+word_count = len(tokens)
+unique_count = len(set(tokens))
+print(f"Word count: {word_count}")
+print(f"Unique words: {unique_count}")
 
-# BoW
-pipe_bow = Pipeline([("cv", CountVectorizer()), ("nb", MultinomialNB())])
-pipe_bow.fit(X_train, y_train)
-bow_acc = accuracy_score(y_test, pipe_bow.predict(X_test))
+# ============================================================================
+# EXERCISE 3: Stopword Removal
+# ============================================================================
 
-# TF-IDF
-pipe_tfidf = Pipeline([("tfidf", TfidfVectorizer()), ("nb", MultinomialNB())])
-pipe_tfidf.fit(X_train, y_train)
-tfidf_acc = accuracy_score(y_test, pipe_tfidf.predict(X_test))
+print("\n" + "=" * 70)
+print("EXERCISE 3: Stopword Removal")
+print("=" * 70)
 
-print(f"  BoW + NB:    {bow_acc:.4f}")
-print(f"  TF-IDF + NB: {tfidf_acc:.4f}")
-
-
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 3: Document Similarity (⭐⭐)                        ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 3: Find Most Similar Documents")
-print("=" * 65)
 print("""
-📝 Task:
-  1. Use TF-IDF to vectorize the documents below
-  2. Compute cosine similarity matrix
-  3. Find the pair of documents most similar to each query
-
-🎯 Expected: Similar topics should have high cosine similarity
+Task:
+1. Remove stopwords from sentences
+2. Compare with/without stopwords
 """)
 
-docs = [
-    "Python is a great programming language for data science",
-    "Machine learning algorithms learn from data",
-    "Basketball and football are popular sports in America",
-    "Data science uses Python and machine learning",
-    "The NBA basketball season starts in October",
+sentence = "The quick brown fox jumps over the lazy dog"
+
+words = sentence.lower().split()
+
+if NLTK_AVAILABLE:
+    try:
+        stop_words = set(stopwords.words('english'))
+    except:
+        nltk.download('stopwords', quiet=True)
+        stop_words = set(stopwords.words('english'))
+else:
+    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+
+filtered = [w for w in words if w not in stop_words]
+
+print(f"Original: {words}")
+print(f"After removing stopwords: {filtered}")
+
+# ============================================================================
+# EXERCISE 4: TF-IDF Features
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 4: TF-IDF Features")
+print("=" * 70)
+
+print("""
+Task:
+1. Create TF-IDF vectors
+2. Compare different documents
+3. Find important words
+""")
+
+documents = [
+    "The cat sat on the mat",
+    "The dog played in the park",
+    "Cats and dogs are pets"
 ]
 
-query = "I love programming in Python for machine learning"
-
-# === YOUR CODE HERE ===
-# ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
 tfidf = TfidfVectorizer()
-X_docs = tfidf.fit_transform(docs)
-X_query = tfidf.transform([query])
+tfidf_matrix = tfidf.fit_transform(documents)
 
-similarities = cosine_similarity(X_query, X_docs)[0]
+print(f"Vocabulary: {tfidf.get_feature_names_out()}")
+print(f"\nTF-IDF Matrix:")
+import pandas as pd
+df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())
+print(df.round(3))
 
-print(f"\n  Query: '{query}'\n")
-print(f"  {'Similarity':>12s}  Document")
-print("  " + "-" * 60)
+# ============================================================================
+# EXERCISE 5: Sentiment Classification
+# ============================================================================
 
-ranked = np.argsort(similarities)[::-1]
-for idx in ranked:
-    print(f"  {similarities[idx]:>12.4f}  '{docs[idx]}'")
+print("\n" + "=" * 70)
+print("EXERCISE 5: Sentiment Classification")
+print("=" * 70)
 
-
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 4: Sentiment Analysis Pipeline (⭐⭐⭐)               ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 4: Complete Sentiment Analysis Pipeline")
-print("=" * 65)
 print("""
-📝 Task:
-  1. Use the reviews dataset from exercise 2
-  2. Create preprocessing function
-  3. Build pipeline: preprocess → TF-IDF(bigrams) → LogReg
-  4. Train and evaluate
-  5. Predict sentiment for 3 new reviews
-
-🎯 Expected: Reasonable predictions on new reviews
+Task:
+1. Create training data
+2. Train classifier
+3. Predict sentiment
 """)
 
-# === YOUR CODE HERE ===
-# ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
-
-# Preprocess all reviews
-clean_reviews = [clean_text(r) for r in reviews]
-X_train, X_test, y_train, y_test = train_test_split(
-    clean_reviews, labels, test_size=0.3, random_state=42, stratify=labels
-)
-
-pipe = Pipeline([
-    ("tfidf", TfidfVectorizer(ngram_range=(1, 2))),
-    ("clf", LogisticRegression(max_iter=1000)),
-])
-pipe.fit(X_train, y_train)
-
-acc = accuracy_score(y_test, pipe.predict(X_test))
-print(f"  Test Accuracy: {acc:.4f}")
-
-new_reviews = [
-    "This movie was incredible, I absolutely loved the acting!",
-    "What a terrible waste of time, very disappointing film.",
-    "The movie was okay, had some good and bad moments.",
+data = [
+    ("I love this", 1),
+    ("Great product", 1),
+    ("Amazing quality", 1),
+    ("Very bad", 0),
+    ("Terrible", 0),
+    ("Worst ever", 0),
 ]
 
-for review in new_reviews:
-    clean = clean_text(review)
-    pred = pipe.predict([clean])[0]
-    sentiment = "Positive ✅" if pred == 1 else "Negative ❌"
-    print(f"  {sentiment}  '{review[:50]}...'")
+texts = [d[0] for d in data]
+labels = [d[1] for d in data]
 
+# Vectorize
+tfidf = TfidfVectorizer()
+X = tfidf.fit_transform(texts)
+y = labels
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 5: 20 Newsgroups Classification (⭐⭐⭐)              ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 5: Multi-class Text Classification")
-print("=" * 65)
+# Train
+clf = LogisticRegression()
+clf.fit(X, y)
+
+# Test
+test = ["This is awesome", "Not good at all"]
+X_test = tfidf.transform(test)
+predictions = clf.predict(X_test)
+
+print("Sentiment Predictions:")
+for text, pred in zip(test, predictions):
+    sentiment = "POSITIVE" if pred == 1 else "NEGATIVE"
+    print(f"  '{text}' → {sentiment}")
+
+# ============================================================================
+# EXERCISE 6: Text Classification
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 6: Text Classification")
+print("=" * 70)
+
 print("""
-📝 Task:
-  1. Load 20 Newsgroups (categories: sci.space, rec.autos, comp.graphics)
-  2. Build 3 pipelines: NB, LogReg, LinearSVC (all with TF-IDF)
-  3. Compare using cross-validation
-  4. Print classification report for the best model
-  5. Predict categories for 3 custom texts
-
-🎯 Expected: Best model accuracy > 0.85
+Task:
+1. Create topic classification data
+2. Train multi-class classifier
+3. Evaluate
 """)
 
-# === YOUR CODE HERE ===
-# ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
-from sklearn.datasets import fetch_20newsgroups
-
-categories = ['sci.space', 'rec.autos', 'comp.graphics']
-train_data = fetch_20newsgroups(subset='train', categories=categories,
-                                 remove=('headers', 'footers', 'quotes'))
-test_data = fetch_20newsgroups(subset='test', categories=categories,
-                                remove=('headers', 'footers', 'quotes'))
-
-models = {
-    "MultinomialNB": MultinomialNB(),
-    "LogisticRegression": LogisticRegression(max_iter=1000),
-    "LinearSVC": LinearSVC(max_iter=2000),
-}
-
-print(f"\n  {'Model':<22s} {'Test Acc':>10s}")
-print("  " + "-" * 34)
-
-best_name, best_acc, best_pipe = "", 0, None
-for name, model in models.items():
-    pipe = Pipeline([
-        ("tfidf", TfidfVectorizer(max_features=10000, ngram_range=(1, 2))),
-        ("clf", model),
-    ])
-    pipe.fit(train_data.data, train_data.target)
-    acc = accuracy_score(test_data.target, pipe.predict(test_data.data))
-    print(f"  {name:<22s} {acc:>10.4f}")
-    if acc > best_acc:
-        best_name, best_acc, best_pipe = name, acc, pipe
-
-print(f"\n  🏆 Best: {best_name} ({best_acc:.4f})")
-
-# Predict custom texts
-custom = [
-    "NASA launched a new rocket to explore Mars and the solar system.",
-    "The new Ford Mustang has an incredible V8 engine and great handling.",
-    "The 3D rendering pipeline uses OpenGL shaders for realistic graphics.",
+data = [
+    ("Apple releases new iPhone", "tech"),
+    ("Tech stock prices rise", "tech"),
+    ("Football team wins championship", "sports"),
+    ("Athlete breaks world record", "sports"),
+    ("Bank reports record profits", "finance"),
+    ("Stock market analysis", "finance"),
 ]
 
-preds = best_pipe.predict(custom)
-for text, pred in zip(custom, preds):
-    cat = categories[pred].split('.')[-1]
-    print(f"  [{cat:>10s}]  '{text[:55]}...'")
+texts = [d[0] for d in data]
+labels = [d[1] for d in data]
 
-print("\n✅ NLP exercises complete! Phase 3 Advanced is done! 🎉")
+# Vectorize
+tfidf = TfidfVectorizer()
+X = tfidf.fit_transform(texts)
+
+# Train
+clf = LogisticRegression()
+clf.fit(X, labels)
+
+# Test
+test_texts = [
+    "New smartphone technology",
+    "Finance minister announces policy",
+    "Basketball game highlights"
+]
+X_test = tfidf.transform(test_texts)
+predictions = clf.predict(X_test)
+
+print("Topic Predictions:")
+for text, pred in zip(test_texts, predictions):
+    print(f"  '{text}' → {pred}")
+
+# ============================================================================
+# BONUS: Regular Expressions
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("BONUS: Regular Expressions")
+print("=" * 70)
+
+print("""
+Task:
+1. Extract emails from text
+2. Extract phone numbers
+3. Extract hashtags
+""")
+
+text = "Contact us at info@company.com or call 555-123-4567. Follow us @company! #sales #marketing"
+
+# Extract emails
+emails = re.findall(r'\b[\w.-]+@[\w.-]+\.\w+\b', text)
+print(f"Emails: {emails}")
+
+# Extract phones
+phones = re.findall(r'\d{3}-\d{3}-\d{4}', text)
+print(f"Phones: {phones}")
+
+# Extract hashtags
+hashtags = re.findall(r'#\w+', text)
+print(f"Hashtags: {hashtags}")
+
+# ============================================================================
+# SUMMARY
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE SUMMARY")
+print("=" * 70)
+
+print("""
+What you practiced:
+1. Text cleaning and preprocessing
+2. Tokenization
+3. Stopword removal
+4. TF-IDF feature extraction
+5. Sentiment classification
+6. Topic classification
+7. Regular expressions
+
+Key Takeaways:
+1. Preprocessing is crucial for NLP
+2. TF-IDF is a strong baseline
+3. Simple ML works well for text
+4. Regular expressions for pattern matching
+
+Next Steps:
+- Try deep learning for NLP
+- Explore word embeddings
+- Build complete NLP pipelines
+""")

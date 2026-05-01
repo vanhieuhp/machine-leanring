@@ -1,267 +1,428 @@
 """
-=================================================================
-NEURAL NETWORKS — EXERCISES
-=================================================================
-5 hands-on exercises with increasing difficulty.
-=================================================================
-Prerequisites: pip install tensorflow
-=================================================================
+Neural Networks - Exercises
+===========================
+
+Practice problems for neural networks.
 """
 
 import numpy as np
-from sklearn.datasets import load_breast_cancer, load_iris
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
-from sklearn.neural_network import MLPClassifier
-import warnings
-warnings.filterwarnings("ignore")
+from sklearn.datasets import make_classification, load_iris
+from sklearn.preprocessing import StandardScaler
 
 try:
     import tensorflow as tf
     from tensorflow import keras
-    from tensorflow.keras import layers, callbacks
-    HAS_TF = True
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense, Dropout
+    from tensorflow.keras.callbacks import EarlyStopping
+    TF_AVAILABLE = True
 except ImportError:
-    HAS_TF = False
-    print("⚠️ TensorFlow not installed. Exercises 3-5 require it.")
+    TF_AVAILABLE = False
+    print("TensorFlow not available")
 
+# ============================================================================
+# EXERCISE 1: Build MLP for MNIST
+# ============================================================================
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 1: sklearn MLP Classifier (⭐⭐)                     ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("=" * 65)
-print("EXERCISE 1: Build MLP with sklearn")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Load breast cancer dataset
-  2. Scale features with StandardScaler
-  3. Train MLPClassifier with architecture (128, 64, 32)
-  4. Try different activations: relu, tanh, logistic
-  5. Compare test accuracy for each activation
+print("=" * 70)
+print("EXERCISE 1: Build MLP for MNIST")
+print("=" * 70)
 
-🎯 Expected: ReLU should give best results
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Load MNIST dataset
+2. Flatten images to 1D
+3. Build MLP with:
+   - Dense(128, activation='relu')
+   - Dense(64, activation='relu')
+   - Dense(10, activation='softmax')
+4. Train for 5 epochs
+5. Evaluate accuracy
 """)
 
-# === YOUR CODE HERE ===
-# ...
+    # Your code:
+    (X_train, y_train), (X_test, y_test) = keras.datasets.mnist.load_data()
 
-# === SOLUTION ===
-print("--- SOLUTION ---")
-data = load_breast_cancer()
-X, y = data.data, data.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-scaler = StandardScaler()
-X_train_s = scaler.fit_transform(X_train)
-X_test_s = scaler.transform(X_test)
+    # Flatten
+    X_train_flat = X_train.reshape(-1, 784).astype('float32') / 255.0
+    X_test_flat = X_test.reshape(-1, 784).astype('float32') / 255.0
 
-for act in ['relu', 'tanh', 'logistic']:
-    mlp = MLPClassifier(hidden_layer_sizes=(128, 64, 32), activation=act,
-                        max_iter=500, random_state=42)
-    mlp.fit(X_train_s, y_train)
-    acc = accuracy_score(y_test, mlp.predict(X_test_s))
-    print(f"  {act:>10s}: accuracy = {acc:.4f}")
+    # Build model
+    model = Sequential([
+        Dense(128, activation='relu', input_shape=(784,)),
+        Dense(64, activation='relu'),
+        Dense(10, activation='softmax')
+    ])
 
+    model.compile(optimizer='adam',
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 2: Effect of Architecture Depth (⭐⭐)               ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 2: How Deep Should Your Network Be?")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Use iris dataset (scaled)
-  2. Test architectures: (16,), (64,), (64,32), (128,64,32), (256,128,64,32)
-  3. Compare train and test accuracy
-  4. Which architecture gives best generalization (test acc)?
+    # Train
+    model.fit(X_train_flat, y_train, epochs=5, verbose=1)
 
-🎯 Think: Does deeper always mean better?
+    # Evaluate
+    test_loss, test_acc = model.evaluate(X_test_flat, y_test)
+    print(f"\nTest Accuracy: {test_acc:.4f}")
+
+# ============================================================================
+# EXERCISE 2: Experiment with Activation Functions
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 2: Activation Functions")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Build 3 models with different activations:
+   - ReLU
+   - Sigmoid
+   - Tanh
+2. Compare performance on same data
 """)
 
-# === YOUR CODE HERE ===
-# ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
-iris = load_iris()
-X, y = iris.data, iris.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-scaler = StandardScaler()
-X_train_s = scaler.fit_transform(X_train)
-X_test_s = scaler.transform(X_test)
-
-archs = [(16,), (64,), (64, 32), (128, 64, 32), (256, 128, 64, 32)]
-print(f"  {'Architecture':<25s} {'Train':>8s} {'Test':>8s}")
-print("  " + "-" * 43)
-for arch in archs:
-    mlp = MLPClassifier(hidden_layer_sizes=arch, max_iter=500, random_state=42)
-    mlp.fit(X_train_s, y_train)
-    tr = accuracy_score(y_train, mlp.predict(X_train_s))
-    te = accuracy_score(y_test, mlp.predict(X_test_s))
-    print(f"  {str(arch):<25s} {tr:>8.4f} {te:>8.4f}")
-print("\n  💡 For small datasets like Iris, simple networks work best!")
-
-
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 3: Keras Binary Classification (⭐⭐⭐)               ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 3: Build a Keras Model with Regularization")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Load breast cancer dataset, scale features
-  2. Build Keras model:
-     - Dense(128) + BatchNorm + ReLU + Dropout(0.3)
-     - Dense(64) + BatchNorm + ReLU + Dropout(0.3)
-     - Dense(1, sigmoid)
-  3. Use EarlyStopping (patience=10)
-  4. Train and print test accuracy
-
-🎯 Expected: accuracy > 0.97
-""")
-
-# === YOUR CODE HERE ===
-# ...
-
-# === SOLUTION ===
-print("--- SOLUTION ---")
-if HAS_TF:
-    data = load_breast_cancer()
-    X, y = data.data, data.target
+    # Generate data
+    X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    scaler = StandardScaler()
-    X_train_s = scaler.fit_transform(X_train)
-    X_test_s = scaler.transform(X_test)
 
-    model = keras.Sequential([
-        layers.Dense(128, input_shape=(X_train_s.shape[1],)),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-        layers.Dropout(0.3),
-        layers.Dense(64),
-        layers.BatchNormalization(),
-        layers.Activation('relu'),
-        layers.Dropout(0.3),
-        layers.Dense(1, activation='sigmoid'),
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    activations = ['relu', 'sigmoid', 'tanh']
+
+    print("\nComparing Activation Functions:")
+    for act in activations:
+        model = Sequential([
+            Dense(32, activation=act, input_shape=(20,)),
+            Dense(1, activation='sigmoid')
+        ])
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        model.fit(X_train_scaled, y_train, epochs=10, verbose=0)
+        _, acc = model.evaluate(X_test_scaled, y_test, verbose=0)
+        print(f"  {act}: {acc:.4f}")
+
+# ============================================================================
+# EXERCISE 3: Build CNN for Image Classification
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 3: Build CNN")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Build CNN with:
+   - Conv2D(32, 3x3, relu)
+   - MaxPooling2D
+   - Conv2D(64, 3x3, relu)
+   - Flatten
+   - Dense(10, softmax)
+2. Train on CIFAR-10 (or subset)
+3. Evaluate
+""")
+
+    # Load CIFAR-10
+    (X_train_cifar, y_train_cifar), (X_test_cifar, y_test_cifar) = keras.datasets.cifar10.load_data()
+
+    # Normalize
+    X_train_cifar = X_train_cifar.astype('float32') / 255.0
+    X_test_cifar = X_test_cifar.astype('float32') / 255.0
+
+    # Build CNN
+    cnn = Sequential([
+        keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)),
+        keras.layers.MaxPooling2D((2, 2)),
+        keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        keras.layers.MaxPooling2D((2, 2)),
+        keras.layers.Flatten(),
+        keras.layers.Dense(10, activation='softmax')
+    ])
+
+    cnn.compile(optimizer='adam',
+                loss='sparse_categorical_crossentropy',
+                metrics=['accuracy'])
+
+    # Train (small subset for demo)
+    cnn.fit(X_train_cifar[:5000], y_train_cifar[:5000], epochs=2, verbose=1)
+
+    # Evaluate
+    loss, acc = cnn.evaluate(X_test_cifar, y_test_cifar)
+    print(f"\nTest Accuracy: {acc:.4f}")
+
+# ============================================================================
+# EXERCISE 4: Add Dropout
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 4: Dropout")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Build model WITH dropout
+2. Compare to model WITHOUT dropout
+3. See the difference in overfitting
+""")
+
+    # Generate overfitting-prone data
+    X, y = make_classification(n_samples=200, n_features=50, n_informative=20,
+                              n_redundant=10, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Without dropout
+    model_no_drop = Sequential([
+        Dense(100, activation='relu', input_shape=(50,)),
+        Dense(50, activation='relu'),
+        Dense(1, activation='sigmoid')
+    ])
+    model_no_drop.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    # With dropout
+    model_drop = Sequential([
+        Dense(100, activation='relu', input_shape=(50,)),
+        Dropout(0.5),
+        Dense(50, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+    model_drop.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    # Train both
+    history_no_drop = model_no_drop.fit(X_train_scaled, y_train, epochs=50, verbose=0,
+                                        validation_data=(X_test_scaled, y_test))
+    history_drop = model_drop.fit(X_train_scaled, y_train, epochs=50, verbose=0,
+                                  validation_data=(X_test_scaled, y_test))
+
+    # Plot
+    plt.figure(figsize=(10, 5))
+    plt.plot(history_no_drop.history['val_accuracy'], label='No Dropout')
+    plt.plot(history_drop.history['val_accuracy'], label='With Dropout')
+    plt.xlabel('Epoch')
+    plt.ylabel('Validation Accuracy')
+    plt.title('Effect of Dropout')
+    plt.legend()
+    plt.show()
+
+    print(f"\nFinal Val Accuracy (No Dropout): {history_no_drop.history['val_accuracy'][-1]:.4f}")
+    print(f"Final Val Accuracy (With Dropout): {history_drop.history['val_accuracy'][-1]:.4f}")
+
+# ============================================================================
+# EXERCISE 5: Build LSTM for Sequence
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 5: LSTM")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    from tensorflow.keras.layers import LSTM
+
+    print("""
+Task:
+1. Create time series data
+2. Build LSTM model
+3. Make predictions
+""")
+
+    # Generate time series
+    def generate_sine_data(n_samples=1000, seq_length=20):
+        X, y = [], []
+        for i in range(n_samples):
+            start = np.random.uniform(0, 10)
+            seq = [np.sin(start + j * 0.5) for j in range(seq_length)]
+            target = np.sin(start + seq_length * 0.5)
+            X.append(seq)
+            y.append(target)
+        return np.array(X), np.array(y)
+
+    X_seq, y_seq = generate_sine_data()
+    X_seq = X_seq.reshape(-1, seq_length, 1)
+
+    split = int(0.8 * len(X_seq))
+    X_train_seq, X_test_seq = X_seq[:split], X_seq[split:]
+    y_train_seq, y_test_seq = y_seq[:split], y_seq[split:]
+
+    # Build LSTM
+    lstm = Sequential([
+        LSTM(32, input_shape=(20, 1)),
+        Dense(1)
+    ])
+    lstm.compile(optimizer='adam', loss='mse')
+
+    lstm.fit(X_train_seq, y_train_seq, epochs=20, verbose=0)
+
+    # Predict
+    y_pred = lstm.predict(X_test_seq)
+    mse = np.mean((y_test_seq - y_pred.flatten())**2)
+    print(f"\nTest MSE: {mse:.4f}")
+
+# ============================================================================
+# EXERCISE 6: Use Early Stopping
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 6: Early Stopping")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Use EarlyStopping callback
+2. Monitor val_loss
+3. Restore best weights
+""")
+
+    # Generate data
+    X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Early stopping
+    early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+    # Model
+    model = Sequential([
+        Dense(64, activation='relu', input_shape=(20,)),
+        Dense(32, activation='relu'),
+        Dense(1, activation='sigmoid')
     ])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    es = callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-    model.fit(X_train_s, y_train, epochs=100, batch_size=32,
-              validation_split=0.2, callbacks=[es], verbose=0)
-    _, acc = model.evaluate(X_test_s, y_test, verbose=0)
-    print(f"  Test Accuracy: {acc:.4f}")
-else:
-    print("  ⚠️ TensorFlow required")
 
+    # Train
+    history = model.fit(X_train_scaled, y_train, epochs=50,
+                        validation_split=0.2, callbacks=[early_stop], verbose=0)
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 4: CNN on Fashion-MNIST (⭐⭐⭐)                      ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 4: Build a CNN for Fashion-MNIST")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Load Fashion-MNIST from keras.datasets
-  2. Normalize to [0,1], reshape to (28,28,1)
-  3. Build CNN:
-     - Conv2D(32, 3x3) + ReLU + MaxPool
-     - Conv2D(64, 3x3) + ReLU + MaxPool
-     - Flatten + Dense(64) + Dropout(0.5) + Dense(10, softmax)
-  4. Train for 10 epochs
-  5. Print test accuracy
+    print(f"Stopped at epoch: {len(history.history['loss'])}")
+    print(f"Best val_loss: {min(history.history['val_loss']):.4f}")
 
-🎯 Expected: accuracy > 0.89
+# ============================================================================
+# EXERCISE 7: Multi-class Classification
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE 7: Multi-class Classification")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    from tensorflow.keras.utils import to_categorical
+
+    print("""
+Task:
+1. Load iris dataset
+2. One-hot encode targets
+3. Build and train model
+4. Evaluate
 """)
 
-# === YOUR CODE HERE ===
-# ...
+    # Load iris
+    iris = load_iris()
+    X, y = iris.data, iris.target
 
-# === SOLUTION ===
-print("--- SOLUTION ---")
-if HAS_TF:
-    (X_train, y_train), (X_test, y_test) = keras.datasets.fashion_mnist.load_data()
-    X_train = X_train.reshape(-1, 28, 28, 1).astype('float32') / 255.0
-    X_test = X_test.reshape(-1, 28, 28, 1).astype('float32') / 255.0
+    # One-hot
+    y_cat = to_categorical(y, 3)
 
-    model = keras.Sequential([
-        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Flatten(),
-        layers.Dense(64, activation='relu'),
-        layers.Dropout(0.5),
-        layers.Dense(10, activation='softmax'),
+    X_train, X_test, y_train, y_test = train_test_split(X, y_cat, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Model
+    model = Sequential([
+        Dense(16, activation='relu', input_shape=(4,)),
+        Dense(8, activation='relu'),
+        Dense(3, activation='softmax')
     ])
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    model.fit(X_train, y_train, epochs=10, batch_size=64, validation_split=0.1, verbose=0)
-    _, acc = model.evaluate(X_test, y_test, verbose=0)
-    print(f"  Fashion-MNIST Test Accuracy: {acc:.4f}")
-else:
-    print("  ⚠️ TensorFlow required")
 
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-# ╔═════════════════════════════════════════════════════════════════╗
-# ║  EXERCISE 5: LSTM for Sequence Classification (⭐⭐⭐⭐)         ║
-# ╚═════════════════════════════════════════════════════════════════╝
-print("\n" + "=" * 65)
-print("EXERCISE 5: LSTM Sequence Classification")
-print("=" * 65)
-print("""
-📝 Task:
-  1. Generate 1000 random sequences (length=50)
-     - Class 1: sequences whose sum > 0
-     - Class 0: sequences whose sum <= 0
-  2. Build LSTM model:
-     - LSTM(64) + Dense(32, relu) + Dense(1, sigmoid)
-  3. Train and evaluate
-  4. Compare SimpleRNN vs LSTM vs GRU
+    model.fit(X_train_scaled, y_train, epochs=50, verbose=0)
 
-🎯 Expected: accuracy > 0.90
+    # Evaluate
+    y_pred = model.predict(X_test_scaled)
+    y_pred_class = np.argmax(y_pred, axis=1)
+    y_true_class = np.argmax(y_test, axis=1)
+
+    print(f"\nAccuracy: {accuracy_score(y_true_class, y_pred_class):.4f}")
+
+# ============================================================================
+# BONUS: Custom Callback
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("BONUS: Custom Callback")
+print("=" * 70)
+
+if TF_AVAILABLE:
+    print("""
+Task:
+1. Create custom callback
+2. Print when accuracy exceeds threshold
 """)
 
-# === YOUR CODE HERE ===
-# ...
+    class AccuracyThresholdCallback(keras.callbacks.Callback):
+        def __init__(self, threshold=0.9):
+            super().__init__()
+            self.threshold = threshold
 
-# === SOLUTION ===
-print("--- SOLUTION ---")
-if HAS_TF:
-    # Generate data
-    np.random.seed(42)
-    n_samples, seq_len = 2000, 50
-    X_seq = np.random.randn(n_samples, seq_len, 1) * 0.5
-    y_seq = (X_seq.sum(axis=1).flatten() > 0).astype(float)
+        def on_epoch_end(self, epoch, logs=None):
+            if logs.get('accuracy') > self.threshold:
+                print(f"\nReached {self.threshold*100}% accuracy at epoch {epoch+1}")
 
-    X_s_train, X_s_test = X_seq[:1600], X_seq[1600:]
-    y_s_train, y_s_test = y_seq[:1600], y_seq[1600:]
+    # Use callback
+    X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    rnn_types = {
-        "SimpleRNN": layers.SimpleRNN(64),
-        "LSTM": layers.LSTM(64),
-        "GRU": layers.GRU(64),
-    }
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
 
-    print(f"  {'Model':<12s} {'Accuracy':>10s} {'Params':>10s}")
-    print("  " + "-" * 34)
+    model = Sequential([
+        Dense(32, activation='relu', input_shape=(20,)),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-    for name, rnn_layer in rnn_types.items():
-        model = keras.Sequential([
-            rnn_layer,
-            layers.Dense(32, activation='relu'),
-            layers.Dense(1, activation='sigmoid'),
-        ])
-        # Rebuild input shape
-        model.build(input_shape=(None, seq_len, 1))
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-        model.fit(X_s_train, y_s_train, epochs=15, batch_size=32,
-                  validation_split=0.2, verbose=0)
-        _, acc = model.evaluate(X_s_test, y_s_test, verbose=0)
-        print(f"  {name:<12s} {acc:>10.4f} {model.count_params():>10,}")
-else:
-    print("  ⚠️ TensorFlow required")
+    model.fit(X_train_scaled, y_train, epochs=10, callbacks=[AccuracyThresholdCallback(0.85)])
 
-print("\n✅ Neural Networks exercises complete! Move on to 04_NLP_Basics next.")
+# ============================================================================
+# SUMMARY
+# ============================================================================
+
+print("\n" + "=" * 70)
+print("EXERCISE SUMMARY")
+print("=" * 70)
+
+print("""
+What you practiced:
+1. Building MLP for MNIST
+2. Comparing activation functions
+3. Building CNN for images
+4. Adding dropout to prevent overfitting
+5. Using LSTM for sequences
+6. Early stopping
+7. Multi-class classification
+8. Custom callbacks
+
+Key Takeaways:
+1. Start simple, add complexity
+2. Use dropout for regularization
+3. Choose activation based on task
+4. Monitor validation performance
+5. Use callbacks for better training
+""")
