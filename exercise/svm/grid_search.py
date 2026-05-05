@@ -38,11 +38,11 @@ grid_search = GridSearchCV(
 
 grid_search.fit(X_train_scaled, y_train)
 
-# Kết quả
+# Kết quả tốt nhất
 print("Best params:", grid_search.best_params_)
 print("Best CV score:", round(grid_search.best_score_ * 100, 2), "%")
 
-# Đánh giá trên test set
+# Đánh giá trên test set — chỉ một lần duy nhất
 best_model = grid_search.best_estimator_
 y_pred = best_model.predict(X_test_scaled)
 print("Test accuracy:", round(accuracy_score(y_test, y_pred) * 100, 2), "%")

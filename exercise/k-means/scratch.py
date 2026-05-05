@@ -117,3 +117,16 @@ sklearn_model = KMeans(n_clusters=3, n_init=10, random_state=42)
 sklearn_model.fit(points)
 
 print(f"Inertia sklearn: {sklearn_model.inertia_:.2f}")
+
+inertias = []
+K_values = range(1, 10)
+
+for k in K_values:
+    assignments, centroids, inertia = kmeans(points, K=k, n_init=10)
+    inertias.append(inertia)
+
+plt.plot(K_values, inertias, marker='o')
+plt.xlabel('K')
+plt.ylabel('Inertia')
+plt.title('Elbow Method')
+plt.show()
