@@ -17,9 +17,9 @@ np.random.seed(42)
 n_input, n_hidden = 2, 4
 
 # Proper weight matrices instead of scalars
-w1 = np.random.randn(n_input, n_hidden) * 0.5  # (2, 4)
+w1 = np.random.randn(n_input, n_hidden)  # (2, 4)
 b1 = np.zeros(n_hidden)                          # (4,)
-w2 = np.random.randn(n_hidden) * 0.5             # (4,)
+w2 = np.random.randn(n_hidden)          # (4,)
 b2 = 0.0
 
 learning_rate = 0.1
@@ -32,7 +32,7 @@ m = x.shape[0]  # number of samples
 print(f"{'Epoch':<10} | {'Loss':<10} | {'Predictions'}")
 print("-" * 55)
 
-for epoch in range(1, 1000):
+for epoch in range(1, 10000):
     # Forward pass — all samples at once
     z1 = np.dot(x, w1) + b1   # (4, 4)
     a1 = relu(z1)               # (4, 4)
@@ -63,5 +63,5 @@ for epoch in range(1, 1000):
         print(f"p  shape: {p.shape}   | values: {p}\n")
         print("-" * 55)
 
-    if epoch % 100 == 0:
+    if epoch % 1000 == 0:
         print(f"{epoch:<10} | {loss:<10.4f} | {np.round(p, 3)}")
