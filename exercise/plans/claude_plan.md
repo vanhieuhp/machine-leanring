@@ -4,7 +4,7 @@
 
 ---
 
-## 🗺️ Tổng quan lộ trình (5 Phases)
+## 🗺️ Tổng quan lộ trình (5 Phases + 2 Tracks)
 
 | Phase | Tên | Trạng thái | Thời gian ước tính |
 |-------|-----|------------|--------------------|
@@ -14,6 +14,8 @@
 | Phase 3 | Deep Learning Architectures | ⏳ Chưa bắt đầu | ~8–10 tuần |
 | Phase 4 | LLMs & Modern AI | ⏳ Chưa bắt đầu | ~6–8 tuần |
 | Phase 5 | MLOps & Production | ⏳ Chưa bắt đầu | ~4–6 tuần |
+| Track CV | Computer Vision (Specialization) | ⏳ Tùy chọn — sau Phase 4 | — |
+| Track VLM | Multimodal AI — Vision + Language | ⏳ Tùy chọn — sau Phase 4 + Track CV | — |
 
 ---
 
@@ -1106,6 +1108,83 @@ jobs:
 
 ---
 
+## ⏳ Track CV — Computer Vision Specialization (Tùy chọn)
+
+> **Trạng thái:** Tùy chọn — nên làm sau Phase 4
+> **Ghi chú:** Track này phù hợp nếu muốn chuyên sâu CV. Có thể học song song với Phase 5 hoặc sau.
+> **Tài nguyên:** PyImageSearch, Szeliski "Computer Vision: Algorithms & Applications"
+
+---
+
+### Mục tiêu cuối track
+Hiểu và implement được pipeline Computer Vision hoàn chỉnh: từ classical CV đến deep CV hiện đại.
+
+---
+
+### CV.1 — Classical CV (Nền Tảng)
+
+- [ ] **OpenCV cơ bản** — xử lý ảnh, color spaces, filters
+- [ ] **Edge detection** — Canny, Sobel (derive từ gradient)
+- [ ] **Feature extraction** — SIFT, HOG (tại sao hoạt động?)
+
+---
+
+### CV.2 — Deep CV
+
+- [ ] **CNN nâng cao** — U-Net cho segmentation, tại sao skip connections?
+- [ ] **Object Detection** — YOLO (derive loss, IoU metric, Focal Loss)
+- [ ] **Vision Transformer (ViT)** — patch embeddings, tại sao attention thay convolution?
+- [ ] **Tracking** — SORT, DeepSORT
+
+---
+
+### 🏆 Milestone Project — Track CV
+**License Plate Recognition pipeline (YOLO + OCR)** — hoặc dataset tương tự
+
+---
+
+## ⏳ Track VLM — Multimodal AI (Tùy chọn, Nâng Cao)
+
+> **Trạng thái:** Sau Phase 4 + Track CV
+> **Tài nguyên:** Karpathy PaliGemma video, Hugging Face VLM blog
+
+---
+
+### Mục tiêu cuối track
+Hiểu cách kết hợp vision encoder và language model, tự xây được VLM đơn giản.
+
+---
+
+### VLM.1 — Checklist
+
+- [ ] **Contrastive Learning** — CLIP: tại sao maximize cosine similarity của matching pairs?
+- [ ] **SigLIP** — cải tiến gì so với CLIP? Sigmoid loss vs softmax
+- [ ] **Bridging mechanism** — BLIP-2 Q-Former, tại sao cần information bottleneck?
+- [ ] **Direct projection** — LLaVA style: MLP projection từ vision → language space
+- [ ] **Fully integrated VLM** — PaliGemma (SigLIP + Gemma), causal vs non-causal attention mask
+- [ ] **Visual Question Answering** — evaluate bằng exact-match, CLIP score
+
+---
+
+### 🏆 Milestone Project — Track VLM
+**Xây VLM đơn giản:** nhận ảnh → trả lời câu hỏi về ảnh
+
+---
+
+## 📚 Tài Nguyên Theo Phase
+
+| Phase | Tài nguyên chính |
+|-------|-----------------|
+| Phase 0–1 | StatQuest, 3Blue1Brown, sklearn docs |
+| Phase 2 | 3Blue1Brown Neural Networks series, Karpathy Micrograd |
+| Phase 3 | fast.ai, deeplearning.ai Deep Learning Specialization |
+| Phase 4 | Karpathy "Zero to Hero", Sebastian Raschka "Build a LLM from Scratch" |
+| Phase 5 | Chip Huyen "Designing ML Systems", "AI Engineering", MLflow docs |
+| Track CV | PyImageSearch, Szeliski "Computer Vision: Algorithms & Applications" |
+| Track VLM | Karpathy PaliGemma video, Hugging Face VLM blog |
+
+---
+
 ## 📌 Gaps Cần Vá Trước Phase 2
 
 ### Gap 1: PCA từ bản chất *(ưu tiên cao nhất)*
@@ -1130,12 +1209,14 @@ Thứ tự học:
 ## 📊 Tổng kết tiến độ
 
 ```
-Phase 0  [██████████] 100% ✅ Toán nền tảng
-Phase 1  [█████████░]  90% ✅ Classical ML (K-Means & PCA cần bổ sung bản chất)
-Phase 2  [░░░░░░░░░░]   0% 🔄 Neural Networks — BẮT ĐẦU TIẾP THEO
-Phase 3  [░░░░░░░░░░]   0% ⏳ Deep Learning Architectures
-Phase 4  [░░░░░░░░░░]   0% ⏳ LLMs & Modern AI
-Phase 5  [░░░░░░░░░░]   0% ⏳ MLOps & Production
+Phase 0   [██████████] 100% ✅ Toán nền tảng
+Phase 1   [█████████░]  90% ✅ Classical ML (K-Means & PCA cần bổ sung bản chất)
+Phase 2   [░░░░░░░░░░]   0% 🔄 Neural Networks — BẮT ĐẦU TIẾP THEO
+Phase 3   [░░░░░░░░░░]   0% ⏳ Deep Learning Architectures
+Phase 4   [░░░░░░░░░░]   0% ⏳ LLMs & Modern AI
+Phase 5   [░░░░░░░░░░]   0% ⏳ MLOps & Production
+Track CV  [░░░░░░░░░░]   0% ⏳ Computer Vision — Tùy chọn sau Phase 4
+Track VLM [░░░░░░░░░░]   0% ⏳ Multimodal AI — Tùy chọn sau Track CV
 ```
 
 ---
