@@ -1,6 +1,6 @@
 # 📚 Hành Trình Học Machine Learning — Eric Nguyen Van
 
-> Cập nhật: Tháng 5/2026 | Version 2.0
+> Cập nhật: Tháng 5/2026 | Version 2.1
 
 ---
 
@@ -10,8 +10,8 @@
 |-------|-----|------------|--------------------|
 | Phase 0 | Toán nền tảng | ✅ Hoàn thành | — |
 | Phase 1 | Classical ML | ✅ Hoàn thành | — |
-| Phase 2 | Neural Networks từ scratch | 🔄 Tiếp theo | ~6–8 tuần |
-| Phase 3 | Deep Learning Architectures | ⏳ Chưa bắt đầu | ~8–10 tuần |
+| Phase 2 | Neural Networks từ scratch | ✅ Hoàn thành | — |
+| Phase 3 | Deep Learning Architectures | 🔄 Tiếp theo | ~8–10 tuần |
 | Phase 4 | LLMs & Modern AI | ⏳ Chưa bắt đầu | ~6–8 tuần |
 | Phase 5 | MLOps & Production | ⏳ Chưa bắt đầu | ~4–6 tuần |
 | Track CV | Computer Vision (Specialization) | ⏳ Tùy chọn — sau Phase 4 | — |
@@ -77,7 +77,7 @@
 
 ---
 
-## 🔄 Phase 2 — Neural Networks từ Scratch
+## ✅ Phase 2 — Neural Networks từ Scratch (Hoàn thành)
 
 > **Triết lý:** Hiểu từng electron trước khi lắp bóng đèn.
 > Toàn bộ phase này sẽ xây bằng NumPy thuần — không dùng PyTorch, không dùng TensorFlow.
@@ -367,7 +367,7 @@ Loss_total = Loss_original + λ × Σ w²
 
 ---
 
-## ⏳ Phase 3 — Deep Learning Architectures
+## 🔄 Phase 3 — Deep Learning Architectures
 
 > **Triết lý:** Mỗi kiến trúc ra đời để giải quyết 1 vấn đề cụ thể.
 > Luôn hỏi: *"Vấn đề gì khiến người ta phát minh ra cái này?"*
@@ -1185,7 +1185,7 @@ Hiểu cách kết hợp vision encoder và language model, tự xây được V
 
 ---
 
-## 📌 Gaps Cần Vá Trước Phase 2
+## 📌 Gaps Đã Xử Lý (Trước Phase 2)
 
 ### Gap 1: PCA từ bản chất *(ưu tiên cao nhất)*
 Thứ tự học:
@@ -1211,8 +1211,8 @@ Thứ tự học:
 ```
 Phase 0   [██████████] 100% ✅ Toán nền tảng
 Phase 1   [█████████░]  90% ✅ Classical ML (K-Means & PCA cần bổ sung bản chất)
-Phase 2   [░░░░░░░░░░]   0% 🔄 Neural Networks — BẮT ĐẦU TIẾP THEO
-Phase 3   [░░░░░░░░░░]   0% ⏳ Deep Learning Architectures
+Phase 2   [██████████] 100% ✅ Neural Networks từ scratch
+Phase 3   [░░░░░░░░░░]   0% 🔄 Deep Learning Architectures — BẮT ĐẦU TIẾP THEO
 Phase 4   [░░░░░░░░░░]   0% ⏳ LLMs & Modern AI
 Phase 5   [░░░░░░░░░░]   0% ⏳ MLOps & Production
 Track CV  [░░░░░░░░░░]   0% ⏳ Computer Vision — Tùy chọn sau Phase 4
