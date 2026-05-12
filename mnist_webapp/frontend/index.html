@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MNIST Digit Recognizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f13;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e8e8f0;
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2e2e42;
+      border-radius: 20px;
+      padding: 36px;
+      width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 6px;
+      color: #c8c8e8;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #666680;
+      margin-bottom: 28px;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #2e2e42;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .canvas-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      color: #3a3a55;
+      font-size: 0.88rem;
+      transition: opacity 0.2s;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    #btn-predict {
+      background: #6c63ff;
+      color: #fff;
+    }
+
+    #btn-predict:hover { filter: brightness(1.15); }
+
+    #btn-clear {
+      background: #2e2e42;
+      color: #a0a0c0;
+    }
+
+    #btn-clear:hover { filter: brightness(1.3); }
+
+    .result-box {
+      background: #12121a;
+      border: 1px solid #2e2e42;
+      border-radius: 14px;
+      padding: 20px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .result-idle {
+      color: #3a3a55;
+      font-size: 0.85rem;
+    }
+
+    .result-digit {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #a99cff;
+    }
+
+    .result-confidence {
+      font-size: 0.82rem;
+      color: #888;
+    }
+
+    .bars {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 4px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+    }
+
+    .bar-label {
+      width: 14px;
+      text-align: right;
+      color: #888;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 6px;
+      background: #2e2e42;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: #6c63ff;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill.top {
+      background: #a99cff;
+    }
+
+    .bar-pct {
+      width: 36px;
+      text-align: right;
+      color: #666;
+    }
+
+    .loading {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #2e2e42;
+      border-top-color: #6c63ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>MNIST Digit Recognizer</h1>
+  <p class="subtitle">Draw a digit (0–9) and press Predict</p>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="280" height="280"></canvas>
+    <div class="canvas-hint" id="hint">Draw here</div>
+  </div>
+
+  <div class="buttons">
+    <button id="btn-predict">Predict</button>
+    <button id="btn-clear">Clear</button>
+  </div>
+
+  <div class="result-box" id="result-box">
+    <span class="result-idle">Result will appear here</span>
+  </div>
+</div>
+
+<script>
+  const API = "http://localhost:8000";
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const hint = document.getElementById("hint");
+  const resultBox = document.getElementById("result-box");
+
+  // Black background
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, 280, 280);
+
+  let drawing = false;
+  let hasDrawn = false;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / r.width;
+    const scaleY = canvas.height / r.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - r.left) * scaleX,
+      y: (clientY - r.top) * scaleY,
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    if (!hasDrawn) {
+      hasDrawn = true;
+      hint.style.opacity = "0";
+    }
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineWidth = 18;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#fff";
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function stopDraw() { drawing = false; }
+
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stopDraw);
+  canvas.addEventListener("mouseleave", stopDraw);
+  canvas.addEventListener("touchstart", startDraw, { passive: false });
+  canvas.addEventListener("touchmove", draw, { passive: false });
+  canvas.addEventListener("touchend", stopDraw);
+
+  document.getElementById("btn-clear").addEventListener("click", () => {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, 280, 280);
+    hasDrawn = false;
+    hint.style.opacity = "1";
+    resultBox.innerHTML = '<span class="result-idle">Result will appear here</span>';
+  });
+
+  document.getElementById("btn-predict").addEventListener("click", predict);
+
+  async function predict() {
+    if (!hasDrawn) {
+      resultBox.innerHTML = '<span class="result-idle">Draw something first!</span>';
+      return;
+    }
+
+    resultBox.innerHTML = '<div class="loading"></div>';
+
+    const dataUrl = canvas.toDataURL("image/png");
+
+    try {
+      const res = await fetch(`${API}/predict_base64`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      renderResult(data);
+    } catch (err) {
+      resultBox.innerHTML = `<span class="result-idle" style="color:#f87171">Error: ${err.message}</span>`;
+    }
+  }
+
+  function renderResult(data) {
+    const { digit, confidence, probabilities } = data;
+
+    const barsHtml = probabilities
+      .map((p, i) => {
+        const isTop = i === digit;
+        return `
+          <div class="bar-row">
+            <span class="bar-label">${i}</span>
+            <div class="bar-track">
+              <div class="bar-fill ${isTop ? "top" : ""}" style="width:${p}%"></div>
+            </div>
+            <span class="bar-pct">${p.toFixed(1)}%</span>
+          </div>`;
+      })
+      .join("");
+
+    resultBox.innerHTML = `
+      <div class="result-digit">${digit}</div>
+      <div class="result-confidence">Confidence: <strong>${confidence}%</strong></div>
+      <div class="bars">${barsHtml}</div>
+    `;
+  }
+</script>
+</body>
+</html>
